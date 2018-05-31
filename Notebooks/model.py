@@ -58,7 +58,8 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
     net = build_model()
     
     # Parameter Initialization
-    net.collect_params().initialize(mx.init.Normal(sigma=1), force_reinit=True, ctx=ctx)
+#    net.collect_params().initialize(mx.init.Normal(sigma=1), force_reinit=True, ctx=ctx)
+    net.collect_params().initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx)
     
     # Optimizer
     trainer = gluon.Trainer(net.collect_params(), optmizer, {'learning_rate': lr})
@@ -68,6 +69,7 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
     
     # Train the model
     for epoch in range(epochs):
+        curr_loss = 0
         for i, (data, label) in enumerate(train_data):
             data = data.as_in_context(ctx)
             label = label.as_in_context(ctx)
@@ -76,11 +78,11 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
                 loss = square_loss(output, label)
             loss.backward()
             trainer.step(data.shape[0])
-            curr_loss = nd.mean(loss).asscalar()
+            curr_loss += nd.mean(loss).asscalar()
         val_accuracy = accuracy(test_data, net, ctx)
         train_accuracy = accuracy(train_data, net, ctx)
-        print("Epoch {}. Loss: {}; Training Accuracy = {}; Validation Accuracy = {}"\
-              .format(epoch, curr_loss, train_accuracy, val_accuracy)
+        print("Epoch {}: Loss: {}; Training Accuracy = {}; Validation Accuracy = {}"\
+              .format(epoch, curr_loss/len(train_data), train_accuracy, val_accuracy)
              )
 
     # Return the model for saving
