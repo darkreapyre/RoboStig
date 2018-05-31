@@ -1,4 +1,4 @@
-# RoboStig - Leveraging Amazon SageMake to build an Autonomous Self-driving Car
+# RoboStig - Leveraging Amazon SageMaker to build an Autonomous Self-driving Car
 
 This repository contains the prototype for a Level 300-400 re:Invent 2018 Bootcamp where participants will leverage [Amazon SageMaker](https://aws.amazon.com/sagemaker/) to perform the following:
 
