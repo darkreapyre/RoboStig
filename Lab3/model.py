@@ -5,7 +5,6 @@ import io
 import logging
 import datetime
 import json
-#import cv2
 import mxnet as mx
 import numpy as np
 from json import dumps, loads
@@ -18,6 +17,7 @@ logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.W
 #                            Training functions                                #
 # ---------------------------------------------------------------------------- #
 def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir, **kwargs):
+    # Set the Context
     ctx = mx.gpu() if num_gpus > 0 else mx.cpu()
     
     # Set Local vs. Distributed training
@@ -100,7 +100,6 @@ def build_model():
         net.add(gluon.nn.Conv2D(channels=48, kernel_size=(5, 5), strides=(2, 2), padding=1, activation='relu'))
         net.add(gluon.nn.Conv2D(channels=64, kernel_size=3, activation='relu'))
         net.add(gluon.nn.Conv2D(channels=64, kernel_size=3, activation='relu'))
-        net.add(gluon.nn.Dropout(.5))
         net.add(gluon.nn.Flatten())
         net.add(gluon.nn.Dense(1164))
         net.add(gluon.nn.Activation('relu'))
@@ -116,7 +115,7 @@ def build_model():
 
 def transform(x, y):
     """
-    Reshape the numpy arrays as 4D Tensors.
+    Reshape the numpy arrays as 4D Tensors for MXNet.
     
     Arguments:
     x -- Numpy Array of input images
