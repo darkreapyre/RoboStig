@@ -1,8 +1,11 @@
-# RoboStig - Leveraging Amazon SageMaker to build an Autonomous Self-driving Car
+# RoboStig - Leveraging Amazon SageMaker to build an Autonomous Self-driving Car.
 
-This repository contains the prototype for a Level 300-400 re:Invent 2018 Bootcamp where participants will leverage [Amazon SageMaker](https://aws.amazon.com/sagemaker/) to perform the following:
+If you're familiar with the British motoring television series [Top Gear](https://en.wikipedia.org/wiki/Top_Gear_(2002_TV_series)), then you are very familiar with [The Stig](https://www.topgear.com/car-news/stig).
 
-1. Drive a vehicle on a mock track using a [Self-Driving Car Simulator](https://github.com/udacity/self-driving-car-sim) to capture the vehicle's telemetry.
-2. Create a Machine Learning (ML) Pipeline, using the telemetry data, to clone the driving behavior as part of a Deep Learning model.
-3. Deploy the behavioral cloning model to a production SageMaker Inference Endpoint.
-4. Use the Endpoint to autonomously drive the vehicle around a second mock track.
+>__"The Stig is a character on the British motoring television show Top Gear. The character is a play on the anonymity of racing drivers' full-face helmets, with the running joke that nobody knows who is inside the Stig's racing suit. The Stig's primary role is setting lap times for cars tested on the show." - Wikipedia__
+
+In this bootcamp, you will create your own __Stig__ by way of a Machine Learning (ML) technique called, __Behavioral Cloning__. This is where a ML model learns to mimmic procedural knowledge through observation.
+
+You will teach your *Stig* to test drive a car around a fictional track by driving a vehicle in a [simulator](https://github.com/udacity/self-driving-car-sim), courtesy of [Udacity](https://www.udacity.com/). 
+
+Once you've acquired the observational data, you will leverage [Amazon SageMaker](https://aws.amazon.com/sagemaker) to follow the 
