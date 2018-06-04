@@ -8,4 +8,4 @@ In this bootcamp, you will create your own __Stig__ by way of a Machine Learning
 
 You will teach your *Stig* to test drive a car around a fictional track by driving a vehicle in a [simulator](https://github.com/udacity/self-driving-car-sim), courtesy of [Udacity](https://www.udacity.com/). 
 
-Once you've acquired the observational data, you will leverage [Amazon SageMaker](https://aws.amazon.com/sagemaker) to follow the 
+Once you've acquired the observational data, you will leverage [Amazon SageMaker](https://aws.amazon.com/sagemaker) and create a *Machine Learning Pipeline* 
