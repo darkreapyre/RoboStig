@@ -8,7 +8,7 @@ If you're familiar with the British motoring television series [Top Gear](https:
 
 In this bootcamp, you will create your own __RoboStig__  by way of a Machine Learning (ML) technique called, __Behavioral Cloning__. This is where an ML model learns to mimmic procedural knowledge through observation. In essence you will teach your __RoboStig__ to test drive a virtual car around a track by watching you drive the vehicle.
 
-In addition to using a [simulator](https://github.com/udacity/self-driving-car-sim) - created by [Udacity](https://www.udacity.com/) - to create the observation data, you will leverage [Amazon SageMaker](https://aws.amazon.com/sagemaker) and create a *Machine Learning Pipeline* to:
+In addition to using a [simulator](https://github.com/udacity/self-driving-car-sim) - developed by [Udacity](https://www.udacity.com/) - that captures the observation data, you will also leverage [Amazon SageMaker](https://aws.amazon.com/sagemaker) and construct a *Machine Learning Pipeline* to:
 
 1. Explore and augment the training data.
 2. Train and optimize your __RoboStig__ model using SageMaker's built-in [image classification algorithm](https://docs.aws.amazon.com/sagemaker/latest/dg/image-classification.html).
