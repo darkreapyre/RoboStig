@@ -12,20 +12,13 @@ Using Docker to run your code consists of the following:
 2. Pull the precompiled Docker image from Docker Hub
 3. Each time you wish to work, run the image as a new container
 
-The tricky part to working with Docker will be accessing your project code while working with a Python process (via Jupyter, Python, or IPython) running in a container. 
-
-### GPU support
-
-GPU Support is available for AWS using `nvidia-docker`. Start [here](docker_for_aws.md). 
+The tricky part to working with Docker will be accessing your project code while working with a Python process (via Jupyter, Python, or IPython) running in a container.
 
 ---
 
-
-### Install Docker On Your Computer
+## Install Docker On Your Computer
 
 Instructions for installation vary by operating system and version.
-
-
 
 | OS                                       | Installation<br>Instruction               | Docker System               | Shell                      | Access Jupyter at |
 |:-----------------------------------------|:-----------------------------------------:|:----------------------------|:--------------------------:|:-----------------:|
@@ -36,7 +29,7 @@ Instructions for installation vary by operating system and version.
 | Windows <br>7, 8, 8.1, or 10 Home            | [Here](docker_toolbox_for_windows.md) | Docker Toolbox for Windows  | Docker Quickstart Terminal | `#DOCKERIP:8888`  |
 
 ---
-
+<!--
 ### Pull the Precompiled Docker Image from Docker Hub
 
 A precompiled image with all dependencies required for the first 
@@ -47,13 +40,13 @@ Once you have docker working, pull the image using the following command:
 ```sh
 docker pull udacity/carnd-term1-starter-kit
 ```
-
-### Run The Image as a New Container
+-->
+## Run The Image as a New Container
 
 In your shell, navigate to the directory of a project, e.g.
 
 ```bash
-$ cd ~/src/CarND-LaneLines-P1
+$ cd ./src
 ```
 
 From within this directory, you are going to run a Jupyter server. In order
@@ -99,7 +92,7 @@ To learn more about Docker [visit the docs](https://docs.docker.com/engine/userg
 
 [carnd_docker_hub]: https://hub.docker.com/r/udacity/carnd-term1-starter-kit/
 
-#### For Windows
+### For Windows
 
 Use the ip address of the container to connect to Jupyter notebook, this can be found by opening another 
 docker terminal and running this command: `docker-machine ip default`. Jupyter server can then be accessed

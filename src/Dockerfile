@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 ADD https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh tmp/Miniconda3-latest-Linux-x86_64.sh
-RUN bash tmp/Miniconda3-4.2.12-Linux-x86_64.sh -b
+RUN bash tmp/Miniconda3-latest-Linux-x86_64.sh -b
 ENV PATH $PATH:/root/miniconda3/bin/
 
 COPY environment.yml .
@@ -27,16 +27,20 @@ RUN conda env create -f environment.yml
 # Cleanup tarballs and downloaded package files
 RUN conda clean -tp -y
 
-# Term 1 workdir
+# Set up our notebook config.
+COPY jupyter_notebook_config.py /root/.jupyter/
+
+# Workdir
 RUN mkdir /src
 WORKDIR "/src"
+
+# Jupyter
+EXPOSE 8888
 
 # Flask Server
 EXPOSE 4567
 
-## Two Birds, One Stone
-# 1. sources conda environment
-# 2. prevents the zombie container issue when started as pid 1
+# Entrypoint
 COPY run.sh /
 RUN chmod +x /run.sh
 ENTRYPOINT ["/run.sh"]

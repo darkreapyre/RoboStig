@@ -6,7 +6,8 @@ dependencies:
     - python==3.5.2
     - numpy
     - matplotlib
-    - opencv3
+    - cv2
+#    - opencv3
     - pillow
     - scikit-learn
     - scikit-image
@@ -19,6 +20,8 @@ dependencies:
     - ffmpeg
     - imageio=2.1.2
     - pyqt=4.11.4
+    - jupyter
     - pip:
         - moviepy
+        - sagemaker
         - mxnet
