@@ -56,17 +56,37 @@ Download the zip file for your operating system below, extract it and run the ex
 - [Windows](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983318_beta-simulator-windows/beta-simulator-windows.zip)
 - [Linux](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983558_beta-simulator-linux/beta-simulator-linux.zip)
 
+### GitHub Client
+
 ---
 
-## Getting Started 
+## Getting Started
+
+Before you can start, clone the repository by following these instructions:
+
+1. Download the Git client for your operating system:
+    >__Note:__ The list below contains links to the common *git-scm* client. Feel free to use an alternative client.
+    - [Mac](https://git-scm.com/download/mac)
+    - [Windows](https://git-scm.com/download/win)
+    - [Linux](https://git-scm.com/download/linux)
+2. Clone the repository.
+```bash
+    $ git clone https://github.com/darkreapyre/RoboStig
+```
+
+This workshop is divided into four modules based on the steps outlined in the Overview. Each module and the relevant instructions for completing the module can be found in `modules` directory (as highlighted below). 
 
 ```
-|--modules
+|--modules                  # Workshop modules
 |  |--0_DataCapture
-|  |  |--README.md
+|  |  |--README.md          # Module instructions and relevent modules files
 |  |...
-|--src
+|--src                      # RoboStig source code
 |  |--README.md
 |  |...
-| README.md
+| README.md                 # This file
 ```
+
+Let's start by capturing our training data for __RoboStig__ to clone, by reading the [instructions](./modules/0_DataCapture/README.md) for __Module 0: Data Capture__.
+
+__Good Luck and have fun!__
