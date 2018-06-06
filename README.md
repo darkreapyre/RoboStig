@@ -41,7 +41,7 @@ In order to complete this workshop you'll need an AWS Account with access to cre
 In order to test the final __RoboStig__ model, you will need to install Docker for operating system and version. Follow the *Installation Instructions* for your OS in the table below:
 
 | OS                                       | Installation<br>Instruction               | Docker System               | Shell                      |
-|:-----------------------------------------|:-----------------------------------------:|:----------------------------|:--------------------------:|:-----------------:|
+|:-----------------------------------------|:-----------------------------------------:|:----------------------------|:--------------------------:|
 | Linux                                    | [Here](https://docs.docker.com/engine/installation/linux/)           | Docker for Linux            | `bash`                     |
 | MacOS <br>>= 10.10.3 (Yosemite)              | [Here](https://docs.docker.com/docker-for-mac/)             | Docker for Mac              | `bash`                     |
 | MacOS <br>>= 10.8 (Mountain Lion)            | [Here](https://docs.docker.com/toolbox/toolbox_install_mac/)     | Docker Toolbox for Max      | Docker Quickstart Terminal |
