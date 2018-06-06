@@ -14,11 +14,21 @@ In addition to using a [simulator](https://github.com/udacity/self-driving-car-s
 2. Train and optimize your __RoboStig__ model using SageMaker's built-in [image classification algorithm](https://docs.aws.amazon.com/sagemaker/latest/dg/image-classification.html).
 3. Train and optimize your __RoboStig__ model with your own algorithm based on the __End-to-End Deep Learning for Self-Driving Cars__ paper from [NVIDIA](https://devblogs.nvidia.com/deep-learning-self-driving-cars/).
 4. Evaluate the performance of the model variants.
-5. Use the best model for __RoboStig__ to drive the vehicle autonomously around the track in the simulator, thus cloning you behavior.
+
+At the conclusion of this workshop, you should be able to use the best model for your __RoboStig__ to drive the vehicle autonomously around the track in the simulator, and thus cloning you behavior.
 
 ---
 
 ## Prerequisites
+
+The following are the requirements to successfully complete this workshop:
+
+### Required Knowledge
+
+1. You need to to understand the Python programming language (all Python code in this workshop is based version 3.6).
+2. You will need to have a good understanding of Deep Learning, specifically in the area of Convolutional Neural Networks. 
+3. You will need to have a basic knowledge of how to use Jupyter Notebooks.
+4. A good understanding of the MXNet Deep Learning framework is beneficial, but not required.
 
 ### AWS Account
 
@@ -30,20 +40,33 @@ In order to complete this workshop you'll need an AWS Account with access to cre
 
 In order to test the final __RoboStig__ model, you will need to install Docker for operating system and version. Follow the *Installation Instructions* for your OS in the table below:
 
-| OS                                       | Installation<br>Instruction               | Docker System               | Shell                      | Access Jupyter at |
+| OS                                       | Installation<br>Instruction               | Docker System               | Shell                      |
 |:-----------------------------------------|:-----------------------------------------:|:----------------------------|:--------------------------:|:-----------------:|
-| Linux                                    | [Here](https://docs.docker.com/engine/installation/linux/)           | Docker for Linux            | `bash`                     | `localhost:8888`  |
-| MacOS <br>>= 10.10.3 (Yosemite)              | [Here](https://docs.docker.com/docker-for-mac/)             | Docker for Mac              | `bash`                     | `localhost:8888`  |
-| MacOS <br>>= 10.8 (Mountain Lion)            | [Here](https://docs.docker.com/toolbox/toolbox_install_mac/)     | Docker Toolbox for Max      | Docker Quickstart Terminal | `#DOCKERIP:8888`  |
-| Windows <br>10 Pro, Enterprise, or Education | [Here](https://docs.docker.com/docker-for-windows)         | Docker for Windows          | `Windows PowerShell`       | `localhost:8888`  |
-| Windows <br>7, 8, 8.1, or 10 Home            | [Here](https://docs.docker.com/toolbox/toolbox_install_windows/) | Docker Toolbox for Windows  | Docker Quickstart Terminal | `#DOCKERIP:8888`  |
+| Linux                                    | [Here](https://docs.docker.com/engine/installation/linux/)           | Docker for Linux            | `bash`                     |
+| MacOS <br>>= 10.10.3 (Yosemite)              | [Here](https://docs.docker.com/docker-for-mac/)             | Docker for Mac              | `bash`                     |
+| MacOS <br>>= 10.8 (Mountain Lion)            | [Here](https://docs.docker.com/toolbox/toolbox_install_mac/)     | Docker Toolbox for Max      | Docker Quickstart Terminal |
+| Windows <br>10 Pro, Enterprise, or Education | [Here](https://docs.docker.com/docker-for-windows)         | Docker for Windows          | `Windows PowerShell`       |
+| Windows <br>7, 8, 8.1, or 10 Home            | [Here](https://docs.docker.com/toolbox/toolbox_install_windows/) | Docker Toolbox for Windows  | Docker Quickstart Terminal |
 
 ### Udacity's Self-Driving Car Simulator
 
-Download the precompiled 
+Download the zip file for your operating system below, extract it and run the executable.
 
-| OS | Link |
-|:---:|:---:|
+- [Mac](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983385_beta-simulator-mac/beta-simulator-mac.zip)
+- [Windows](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983318_beta-simulator-windows/beta-simulator-windows.zip)
+- [Linux](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983558_beta-simulator-linux/beta-simulator-linux.zip)
 
+---
 
-https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983385_beta-simulator-mac/beta-simulator-mac.zip
+## Getting Started 
+
+```
+|--modules
+|  |--0_DataCapture
+|  |  |--README.md
+|  |...
+|--src
+|  |--README.md
+|  |...
+| README.md
+```
