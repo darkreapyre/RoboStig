@@ -72,7 +72,7 @@ Download the zip file for your operating system below, extract it and run the ex
 Before you can start, clone the repository by following these instructions:
 
 1. Download the Git client for your operating system:
-    >__Note:__ The list below contains links to the common *git-scm* client. Feel free to use an alternative client.
+    >__Note:__ The list below contains links to the common *git-scm* client. Feel free to use an alternative client of your choosing.
     - [Mac](https://git-scm.com/download/mac)
     - [Windows](https://git-scm.com/download/win)
     - [Linux](https://git-scm.com/download/linux)
