@@ -1,5 +1,15 @@
 # RoboStig - Leveraging Amazon SageMaker to build an Autonomous Self-driving Car
 
+### Table of Contents
+
+1. [Overview](#overview)
+2. [Prerequisites](#prerequisites)
+    * [Required Knowled](#required-knowledge)
+    * [AWS Account](#aws-account)
+    * [Docker](#docker)
+    * [Udacity's Self-Driving Car Simulator](#udacitys-selfdriving-car-simulator)
+3. [Getting Started](#getting-started)
+
 ## Overview
 
 If you're familiar with the British motoring television series [Top Gear](https://en.wikipedia.org/wiki/Top_Gear_(2002_TV_series)), then you are very familiar with [The Stig](https://www.topgear.com/car-news/stig).
