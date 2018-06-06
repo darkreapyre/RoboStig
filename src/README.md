@@ -1,22 +1,4 @@
-# Configure and Manage Your Environment with Docker
-
-Per the Docker [docs](https://www.docker.com/what-docker):
-
-> Docker containers wrap a piece of software in a complete filesystem that contains everything needed to run: code, runtime, system tools, system libraries – anything that can be installed on a server. This guarantees that the software will always run the same, regardless of its environment.
-
-## Overview
-
-Using Docker to run your code consists of the following:
-
-1. Install Docker on your computer or a remote system
-2. Pull the precompiled Docker image from Docker Hub
-3. Each time you wish to work, run the image as a new container
-
-The tricky part to working with Docker will be accessing your project code while working with a Python process (via Jupyter, Python, or IPython) running in a container.
-
----
-
-## Install Docker On Your Computer
+# Install Docker On Your Computer
 
 Instructions for installation vary by operating system and version.
 
