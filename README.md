@@ -7,7 +7,7 @@
     * [Required Knowled](#required-knowledge)
     * [AWS Account](#aws-account)
     * [Docker](#docker)
-    * [Udacity's Self-Driving Car Simulator](#udacitys-self_driving-car-simulator)
+    * [Udacity's Self-Driving Car Simulator](#udacitys-self-driving-car-simulator)
 3. [Getting Started](#getting-started)
 
 ## Overview
