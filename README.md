@@ -81,12 +81,12 @@ Before you can start, clone the repository by following these instructions:
     $ git clone https://github.com/darkreapyre/RoboStig
 ```
 
-This workshop is divided into four modules based on the steps outlined in the Overview. Each module and the relevant instructions for completing the module can be found in `modules` directory (as highlighted below). 
+This workshop is divided into four modules based on the steps outlined in the [Overview](#overview). Each module and the relevant instructions (`README.md`) for completing the module can be found in `modules` directory (as highlighted below). 
 
 ```
 |--modules                  # Workshop modules
-|  |--0_DataCapture
-|  |  |--README.md          # Module instructions and relevent modules files
+|  |--0_DataCapture         # First module with instructions and relevent files
+|  |  |--README.md          # Module instructions
 |  |...
 |--src                      # RoboStig source code
 |  |--README.md
