@@ -21,9 +21,10 @@ In this workshop, you will create your own __Stig (RoboStig)__  by way of a Mach
 In addition to using a [simulator](https://github.com/udacity/self-driving-car-sim) - developed by [Udacity](https://www.udacity.com/) - that captures the observation data, you will also leverage [Amazon SageMaker](https://aws.amazon.com/sagemaker) and construct a *Machine Learning Pipeline* to do the following:
 
 1. Explore and augment the training data.
-2. Train and optimize your __RoboStig__ model using SageMaker's built-in [image classification algorithm](https://docs.aws.amazon.com/sagemaker/latest/dg/image-classification.html).
-3. Train and optimize your __RoboStig__ model with your own algorithm based on the __End-to-End Deep Learning for Self-Driving Cars__ paper from [NVIDIA](https://devblogs.nvidia.com/deep-learning-self-driving-cars/).
-4. Evaluate the performance of the model variants.
+2. Train and optimize your __RoboStig__ model with your own MXNet algorithm based on the __End-to-End Deep Learning for Self-Driving Cars__ paper from [NVIDIA](https://devblogs.nvidia.com/deep-learning-self-driving-cars/).
+3. Optimize your __RoboStig__ model using SageMaker Automatic Model Tuning.
+4. Demonstrate the flexibility of SageMaker by using the Keras framework to create your own __RoboStig__ estimator and inference engines.
+5. Evaluate the performance of the model variants and how to scale them.
 
 At the conclusion of this workshop, you should be able to use the best model for your __RoboStig__ to drive the vehicle autonomously around the track in the simulator, and thus cloning you behavior.
 
@@ -37,8 +38,8 @@ The following are the requirements to successfully complete this workshop:
 
 1. You need to to understand the Python programming language (all Python code in this workshop is based version 3.6).
 2. You will need to have a good understanding of Deep Learning, specifically in the area of Convolutional Neural Networks. 
-3. You will need to have a basic knowledge of how to use Jupyter Notebooks.
-4. A good understanding of the MXNet Deep Learning framework is beneficial, but not required.
+3. You will need to have a basic knowledge of how to use Jupyter Notebooks to analyze, describe and visualize data.
+4. A good understanding of the MXNet, Gluon and Keras Deep Learning frameworks is beneficial.
 
 ### AWS Account
 
