@@ -377,7 +377,7 @@ def transform_fn(net, data, input_content_type, output_content_type):
 ```
 
 ---
-## Building the Estimator Training Script
+## Building the Estimator Script
 __blah blah blah; copy your functions to `model.py`; should look as follows:__  
 
 <details><summary><b>`model.py` (Click to expand)</b></summary><p>
@@ -611,3 +611,7 @@ def transform_fn(net, data, input_content_type, output_content_type):
     return response_body, output_content_type
 ```
 </p></details>
+
+---
+# Next Step: Training in SageMaker
+Now that you've built the Estimator Script, you will use SageMaker to to train your __RoboStig__ model. Open the [SageMakerBYOM](./SageMakerBYOM.ipynb) Notebook to start the training job.
