@@ -10,7 +10,7 @@ Explain why the built-in image classification algorithm can't be used here.
 __blah blah blah__  
 
 <details><summary><b>Note to self</b></summary><p>
-Make sure to highlight the fact that the necessary libraries have already been configured in the model temaplate file.
+Make sure to highlight the fact that the necessary libraries have already been configured in the model template file.
 </p></details>
 
 
@@ -27,8 +27,7 @@ def build_model():
     return net
 ```
 
-<details><summary><b>Solution (Click to expand)</b></summary>
-<p>
+<details><summary><b>Solution (Click to expand)</b></summary><p>
 ```
 def build_model():
     """
@@ -55,8 +54,7 @@ def build_model():
     net.hybridize()
     return net
 ```
-</p>
-</details>
+</p></details>
 
 ### Resizing the Input Shapes: `transform()` Function
 __BLAH BLAH BLAH__  
@@ -78,9 +76,8 @@ def transform(x, y):
     label = None
     return data, label
 ```
+<details><summary><b>Solution (Click to expand)</b></summary><p>
 
-<details><summary><b>Solution (Click to expand)</b></summary>
-<p>
 ```
 def transform(x, y):
     """
@@ -98,8 +95,7 @@ def transform(x, y):
     label = y.reshape(-1, 1)
     return data, label
 ```
-</p>
-</details>
+</p></details>
 
 ### Loading and Transforming the Datasets: `load_data()` Function
 __blah blah blah__
@@ -118,9 +114,8 @@ def load_data(f_path):
 
     return None
 ```
+<details><summary><b>Solution (Click to expand)</b></summary><p>
 
-<details><summary><b>Solution (Click to expand)</b></summary>
-<p>
 ```
 def load_data(f_path):
     """
@@ -141,6 +136,7 @@ def load_data(f_path):
     return train_X, train_Y, test_X, test_Y
 ```
 </p></details>
+
 
 ### Measuring the Training vs. Validation Accuracy: `accuracy()` Function
 __blah blah blah__
