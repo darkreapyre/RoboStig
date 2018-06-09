@@ -30,41 +30,34 @@ At the conclusion of this workshop, you should be able to use the best model for
 
 ---
 
-## Prerequisites
+## Requirements
 
 The following are the requirements to successfully complete this workshop:
 
-### Required Knowledge
+1. Laptop computer.
+2. Prerequisite Knowledge
+- You need to to understand the Python programming language (all Python code in this workshop is based version 3.6).
+- You will need to have a good understanding of Deep Learning, specifically in the area of Convolutional Neural Networks. 
+- You will need to have a basic knowledge of how to use Jupyter Notebooks to analyze, describe and visualize data.
+- A good understanding of the MXNet, Gluon and Keras Deep Learning frameworks is beneficial.
+3. AWS Account
+    In order to complete this workshop you'll need an AWS Account with access to create AWS IAM, S3 and SageMaker resources. The code and instructions in this workshop assume only one student is using a given AWS account at a time. If you try sharing an account with another student, you'll run into naming conflicts for certain resources. You can work around these by appending a unique suffix to the resources that fail to create due to conflicts, but the instructions do not provide details on the changes required to make this work.
+    >__Note:__ All of the resources you will launch as part of this workshop are eligible for the AWS free tier if your account is less than 12 months old. See the [AWS Free Tier page](https://aws.amazon.com/free/) for more details. It is also recommended that you use the `us-west-2` AWS Region for the workshop.
+4. Docker
+    In order to test the final __RoboStig__ model, you will need to install Docker for operating system and version. Follow the *Installation Instructions* for your OS in the table below:
 
-1. You need to to understand the Python programming language (all Python code in this workshop is based version 3.6).
-2. You will need to have a good understanding of Deep Learning, specifically in the area of Convolutional Neural Networks. 
-3. You will need to have a basic knowledge of how to use Jupyter Notebooks to analyze, describe and visualize data.
-4. A good understanding of the MXNet, Gluon and Keras Deep Learning frameworks is beneficial.
-
-### AWS Account
-
-In order to complete this workshop you'll need an AWS Account with access to create AWS IAM, S3 and SageMaker resources. The code and instructions in this workshop assume only one student is using a given AWS account at a time. If you try sharing an account with another student, you'll run into naming conflicts for certain resources. You can work around these by appending a unique suffix to the resources that fail to create due to conflicts, but the instructions do not provide details on the changes required to make this work.
->__Note:__ All of the resources you will launch as part of this workshop are eligible for the AWS free tier if your account is less than 12 months old. See the [AWS Free Tier page](https://aws.amazon.com/free/) for more details. It is also recommended that you use the `us-west-2` AWS Region for the workshop.
-
-### Docker
-
-In order to test the final __RoboStig__ model, you will need to install Docker for operating system and version. Follow the *Installation Instructions* for your OS in the table below:
-
-| OS                                       | Installation<br>Instruction               | Docker System               | Shell                      |
-|:-----------------------------------------|:-----------------------------------------:|:----------------------------|:--------------------------:|
-| Linux                                    | [Here](https://docs.docker.com/engine/installation/linux/)           | Docker for Linux            | `bash`                     |
-| MacOS <br>>= 10.10.3 (Yosemite)              | [Here](https://docs.docker.com/docker-for-mac/)             | Docker for Mac              | `bash`                     |
-| MacOS <br>>= 10.8 (Mountain Lion)            | [Here](https://docs.docker.com/toolbox/toolbox_install_mac/)     | Docker Toolbox for Max      | Docker Quickstart Terminal |
-| Windows <br>10 Pro, Enterprise, or Education | [Here](https://docs.docker.com/docker-for-windows)         | Docker for Windows          | `Windows PowerShell`       |
-| Windows <br>7, 8, 8.1, or 10 Home            | [Here](https://docs.docker.com/toolbox/toolbox_install_windows/) | Docker Toolbox for Windows  | Docker Quickstart Terminal |
-
-### Udacity's Self-Driving Car Simulator
-
-Download the zip file for your operating system below, extract it and run the executable.
-
-- [Mac](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983385_beta-simulator-mac/beta-simulator-mac.zip)
-- [Windows](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983318_beta-simulator-windows/beta-simulator-windows.zip)
-- [Linux](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983558_beta-simulator-linux/beta-simulator-linux.zip)
+    | OS                                       | Installation<br>Instruction               | Docker System               | Shell                      |
+    |:-----------------------------------------|:-----------------------------------------:|:----------------------------|:--------------------------:|
+    | Linux                                    | [Here](https://docs.docker.com/engine/installation/linux/)           | Docker for Linux            | `bash`                     |
+    | MacOS <br>>= 10.10.3 (Yosemite)              | [Here](https://docs.docker.com/docker-for-mac/)             | Docker for Mac              | `bash`                     |
+    | MacOS <br>>= 10.8 (Mountain Lion)            | [Here](https://docs.docker.com/toolbox/toolbox_install_mac/)     | Docker Toolbox for Max      | Docker Quickstart Terminal |
+    | Windows <br>10 Pro, Enterprise, or Education | [Here](https://docs.docker.com/docker-for-windows)         | Docker for Windows          | `Windows PowerShell`       |
+    | Windows <br>7, 8, 8.1, or 10 Home            | [Here](https://docs.docker.com/toolbox/toolbox_install_windows/) | Docker Toolbox for Windows  | Docker Quickstart Terminal |
+5. Udacity's Self-Driving Car Simulator
+    Download the zip file for your operating system below, extract it and run the executable.
+    - [Mac](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983385_beta-simulator-mac/beta-simulator-mac.zip)
+    - [Windows](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983318_beta-simulator-windows/beta-simulator-windows.zip)
+    - [Linux](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983558_beta-simulator-linux/beta-simulator-linux.zip)
 
 ---
 
