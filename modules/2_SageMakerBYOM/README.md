@@ -380,7 +380,7 @@ def transform_fn(net, data, input_content_type, output_content_type):
 ## Building the Estimator Script
 __blah blah blah; copy your functions to `model.py`; should look as follows:__  
 
-<details><summary><b>`model.py` (Click to expand)</b></summary><p>
+<details><summary><b>model.py (Click to expand)</b></summary><p>
 
 ```
 # Import necessary libraries
