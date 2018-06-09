@@ -1,1 +1,1 @@
-# SageMaker Image Classification Algorithm
+# SageMaker Hyperparameter Tuning

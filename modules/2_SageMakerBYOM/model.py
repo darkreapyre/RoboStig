@@ -58,13 +58,12 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
     net = build_model()
     
     # Parameter Initialization
-#    net.collect_params().initialize(mx.init.Normal(sigma=1), force_reinit=True, ctx=ctx)
     net.collect_params().initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx)
     
     # Optimizer
     trainer = gluon.Trainer(net.collect_params(), optmizer, {'learning_rate': lr})
     
-    # Cross Entropy Loss Function
+    # Squared Error Loss Function
     square_loss = gluon.loss.L2Loss()
     
     # Train the model
