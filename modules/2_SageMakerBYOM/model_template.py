@@ -138,7 +138,9 @@ def save(net, model_dir):
     model_dir -- The model directory location to save the model.
     """
     print("Saving the trained model ...")
-    y = None
+    y = net(mx.sym.var('data'))
+    y.save('%s/model.json' % model_dir)
+    net.collect_params().save('%s/model.params' % model_dir)
 
 # ---------------------------------------------------------------------------- #
 #                           Hosting functions                                  #
