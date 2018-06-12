@@ -63,7 +63,7 @@ The following are the requirements to successfully complete this workshop:
 
 ## Getting Started
 
-Before you can start, clone the repository by following these instructions:
+<!--Before you can start, clone the repository by following these instructions:
 
 1. Download the Git client for your operating system:
     >__Note:__ The list below contains links to the common *git-scm* client. Feel free to use an alternative client of your choosing.
@@ -74,7 +74,7 @@ Before you can start, clone the repository by following these instructions:
 ```bash
     $ git clone https://github.com/darkreapyre/RoboStig
 ```
-
+-->
 This workshop is divided into four modules based on the steps outlined in the [Overview](#overview). Each module and the relevant instructions (`README.md`) for completing the module can be found in `modules` directory (as highlighted below). 
 
 ```
@@ -88,6 +88,6 @@ This workshop is divided into four modules based on the steps outlined in the [O
 | README.md                 # This file
 ```
 
-Let's start by capturing our training data for __RoboStig__ to clone, by reading the [instructions](./modules/0_DataCapture/README.md) for __Module 0: Data Capture__.
+Let's start by capturing driving training data for __RoboStig__ to clone. To proceed follow the [instructions](./modules/0_DataCapture/README.md) for __Module 0: Data Capture__.
 
 __Good Luck and have fun!__
