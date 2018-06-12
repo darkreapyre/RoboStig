@@ -1,4 +1,4 @@
-# Data Exploration
+# Modeule 1: Data Exploration
 ## Overview
 In this module you will explore the driving observations captured from the simulator. In order to create the most effective model for __RoboStig__ to use, exploring and understanding the data is crucial. Therefore, after exploring the data, you will determine the best features to extract and train on. Additionally, you will look at various options to transform and augment the data to ensure:
 
