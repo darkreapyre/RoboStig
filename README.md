@@ -54,7 +54,7 @@ The following are the requirements to successfully complete this workshop:
     | Windows <br>10 Pro, Enterprise, or Education | [Here](https://docs.docker.com/docker-for-windows)         | Docker for Windows          | `Windows PowerShell`       |
     | Windows <br>7, 8, 8.1, or 10 Home            | [Here](https://docs.docker.com/toolbox/toolbox_install_windows/) | Docker Toolbox for Windows  | Docker Quickstart Terminal |
 5. Udacity's Self-Driving Car Simulator
-    Download the zip file for your operating system below:
+    Download the zip file for your operating system below and extract the contents:
     - [Mac](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983385_beta-simulator-mac/beta-simulator-mac.zip)
     - [Windows](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983318_beta-simulator-windows/beta-simulator-windows.zip)
     - [Linux](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58983558_beta-simulator-linux/beta-simulator-linux.zip)
@@ -75,9 +75,9 @@ The following are the requirements to successfully complete this workshop:
     $ git clone https://github.com/darkreapyre/RoboStig
 ```
 -->
-This workshop is divided into four modules based on the steps outlined in the [Overview](#overview). Each module and the relevant instructions (`README.md`) for completing the module can be found in `modules` directory (as highlighted below). 
+This workshop is divided into four modules based on the steps outlined in the [Overview](#overview). Each module and the relevant instructions (`README.md`) for completing the module can be found in `modules` directory (as highlighted below).
 
-```
+```text
 |--modules                  # Workshop modules
 |  |--0_DataCapture         # First module with instructions and relevent files
 |  |  |--README.md          # Module instructions
@@ -88,6 +88,9 @@ This workshop is divided into four modules based on the steps outlined in the [O
 | README.md                 # This file
 ```
 
-Let's start by capturing driving training data for __RoboStig__ to clone. To proceed follow the [instructions](./modules/0_DataCapture/README.md) for __Module 0: Data Capture__.
+For the sake of brevity and conformity across the various modules, a [sample dataset](https://d17h27t6h515a5.cloudfront.net/topher/2016/December/584f6edd_data/data.zip) of driving observations is already provided for you to train the __RoboStig__ model. You are welcome to create your own training datasets by running the simulator in *Training Mode* and capturing your driving behavior.
+>__Please Note:__ Should you choose to user your own driving dataset, you will need to adjust the Jupyter Notebook code cells accordingly.
 
-__Good Luck and have fun!__
+Let's get started by analyzing the training data for __RoboStig__ to clone. To proceed, follow the [instructions](./modules/1_DataExploration/README.md) for __Module 1: Data Exploration__.
+
+__HAVE FUN!__
