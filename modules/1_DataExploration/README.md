@@ -42,6 +42,7 @@ We'll start by creating a SageMaker notebook instance, which we will use for the
 
 ## Starting the Module
 
+
 1. In the upper-right corner of the Jupyter Notebook, click the **New** button and select **Terminal**.
 
 ![Terminal](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/terminal.jpg)
@@ -54,4 +55,7 @@ $ git clone https://github.com/darkreapyre/RoboStig
 $ exit
 ```
 
-3. Closing the terminal tab will return you to the main Jupyter menu. Navigate to the `RoboStig\modules\1_DataExploratin\Data_Exploration.ipynb` Notebook to get get started exploring the driving observation data.
+3. Closing the terminal tab will return you to the main Jupyter menu. Navigate to the `RoboStig\modules\1_DataExploratin\Data_Exploration.ipynb` Notebook to get get started exploring the driving observation data. Work through these steps on the Notebook to see explore the data:
+- To run the notebook document step-by-step (one cell a time) by pressing shift + enter.
+- To restart the kernel (i.e. the computational engine), click on the menu **Kernel** -> **Restart**. This can be useful to start over a computation from scratch (e.g. variables are deleted, open files are closed, etc…).
+- More information on editing a notebook can be found on the [Notebook Basics](http://nbviewer.jupyter.org/github/jupyter/notebook/blob/master/docs/source/examples/Notebook/Notebook%20Basics.ipynb) page.
