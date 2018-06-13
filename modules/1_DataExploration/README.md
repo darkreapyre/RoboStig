@@ -4,7 +4,7 @@ In this module you will explore the driving observations captured from the simul
 
 1. You have a sufficient amount of data for training.
 2. The data is formatted correctly and "cleaned" for training.
-3. The training samples provide a enugh variation to ensure that the eventual model does not overfit the training samples.
+3. The training samples provide a enough variation to ensure that the eventual model does not overfit the training samples.
 
 To assist in these tasks, SageMaker provides hosted Jupyter notebooks that are pre-loaded with useful libraries for machine learning. To create a SageMaker notebook instance for this workshop, follow the instructions below.
 
@@ -20,17 +20,17 @@ We'll start by creating a SageMaker notebook instance, which we will use for the
 
 ![Notebook Instance](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/create.jpg)
 
-4. Enter *RoboStig* into the **Notebook instance name** text box, and select ml.t2.xlarge for the **Notebook instance type**.
+4. Enter *RoboStig* into the **Notebook instance name** text box, and select *ml.t2.xlarge* for the **Notebook instance type**.
 
 ![Notebook Settings](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/settings.jpg)
 
-6. For IAM role, choose **Create a new role**, and in the resulting pop-up modal, select **Any S3 bucket** under **S3 Buckets you specify – optional**. Click **Create role**.
+5. For IAM role, choose **Create a new role**, and in the resulting pop-up modal, select **Any S3 bucket** under **S3 Buckets you specify – optional**. Click **Create role**.
 
 ![Bucket Access](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/bucket.jpg)
 
-7. You will be taken back to the Create Notebook instance page.  Click **Create notebook instance**.
+6. You will be taken back to the Create Notebook instance page.  Click **Create notebook instance**.
 
-## Access theNotebook Instance
+## Accessing the Notebook Instance
 
 1. Wait for the server status to change to **InService**. This will take several minutes, possibly up to ten but likely less.
 
@@ -38,13 +38,20 @@ We'll start by creating a SageMaker notebook instance, which we will use for the
 
 2. Click **Open**. You will now see the Jupyter homepage for your notebook instance.
 
-![Open Notebook](./images/jupyter-homepage.png)
+![Open Notebook](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/start.jpg)
 
+## Starting the Module
 
+1. In the upper-right corner of the Jupyter Notebook, click the **New** button and select **Terminal**.
 
+![Terminal](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/terminal.jpg)
 
+2. After the new terminal opens, download the workshop content by running the following commands:
 
+```terminal
+$ cd SageMaker/
+$ git clone https://github.com/darkreapyre/RoboStig
+$ exit
+```
 
-
-
-__Create Notebook Instance: `ml.t2.xlarge`__
+3. Closing the terminal tab will return you to the main Jupyter menu. Navigate to the `RoboStig\modules\1_DataExploratin\Data_Exploration.ipynb` Notebook to get get started exploring the driving observation data.
