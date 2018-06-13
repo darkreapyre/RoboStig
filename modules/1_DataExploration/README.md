@@ -10,27 +10,23 @@ To assist in these tasks, SageMaker provides hosted Jupyter notebooks that are p
 
 ## Creating a Notebook Instance
 
-We'll start by creating an Amazon S3 bucket that will be used throughout the workshop.  We'll then create a SageMaker notebook instance, which we will use for the other workshop modules.
+We'll start by creating a SageMaker notebook instance, which we will use for the other workshop modules.
 
-1. Open the [AWS Management Console](https://us-east-1.signin.aws.amazon.com/console) in your browser and log into you AWS account. 
+1. Open the [SageMakerManagement Console](https://console.aws.amazon.com/sagemaker) in your browser and log into you AWS account.
 
-2. In the upper-right corner of the AWS Management Console, confirm you are in the desired AWS region. Select N. Virginia, Oregon, Ohio, or Ireland.
+2. In the upper-right corner of the AWS Management Console, confirm you are in the desired AWS region. Select __Oregon__.
 
-3. Click on Amazon SageMaker from the list of all services.  This will bring you to the Amazon SageMaker console homepage.
+3. To create a new notebook instance, go to **Notebook instances**, and click the **Create notebook instance** button at the top of the browser window.
 
-![Services in Console](./images/console-services.png)
+![Notebook Instance](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/create.jpg)
 
-4. To create a new notebook instance, go to **Notebook instances**, and click the **Create notebook instance** button at the top of the browser window.
+4. Enter *RoboStig* into the **Notebook instance name** text box, and select ml.t2.xlarge for the **Notebook instance type**.
 
-![Notebook Instances](./images/notebook-instances.png)
+![Notebook Settings](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/settings.jpg)
 
-5. Type smworkshop-[First Name]-[Last Name] into the **Notebook instance name** text box, and select ml.m4.xlarge for the **Notebook instance type**.
+6. For IAM role, choose **Create a new role**, and in the resulting pop-up modal, select **Any S3 bucket** under **S3 Buckets you specify – optional**. Click **Create role**.
 
-![Create Notebook Instance](./images/notebook-settings.png)
-
-6. For IAM role, choose **Create a new role**, and in the resulting pop-up modal, select **Specific S3 buckets** under **S3 Buckets you specify – optional**. In the text field, paste the name of the S3 bucket you created above, AND the following bucket name separated from the first by a comma:  `gdelt-open-data`.  The combined field entry should look similar to ```smworkshop-john-smith, gdelt-open-data```. Click **Create role**.
-
-![Create IAM role](./images/role-popup.png)
+![Bucket Access](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/bucket.jpg)
 
 7. You will be taken back to the Create Notebook instance page.  Click **Create notebook instance**.
 
@@ -38,7 +34,7 @@ We'll start by creating an Amazon S3 bucket that will be used throughout the wor
 
 1. Wait for the server status to change to **InService**. This will take several minutes, possibly up to ten but likely less.
 
-![Access Notebook](./images/open-notebook.png)
+![Access Notebook](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/open.jpg)
 
 2. Click **Open**. You will now see the Jupyter homepage for your notebook instance.
 
