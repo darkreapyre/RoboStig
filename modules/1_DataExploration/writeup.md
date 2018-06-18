@@ -14,9 +14,9 @@ From the data, you will notice that there are $8036$ observations or driving "lo
 
 By describing the summary statistics of the DataFrame, there are some interesting details that are further highlighted, namely:
 
-1. Two thirds of the *steering* observations are $0.0$. This highlighters that the majority of the observations have a $0$ degree steering angle. In other words, the majority of the observations record the vehicle driving straight. 
-2. Two thirds of the *speed* observations clock the vehicle driving at $30 Mph$, which coincides with the maximum speed value.
-3. There is a correlation between the *speed* and *brake* observations since two thirds of the data also shows that 
+1. Two thirds of the *steering* observations are $0.0$. This highlighters that the majority of the observations have a $0$ degree steering angle. In other words, the majority of the observations record the vehicle driving straight.
+2. Two thirds of the *speed* observations clock the vehicle driving at $30 Mph$. This coincides with the maximum speed value.
+3. There is a correlation between the *speed* and *brake* observations since two thirds of the data also shows that there is zero braking and and the average *speed* is $28.1 Mph$.
 
 # Visualize the Data
 
