@@ -42,7 +42,6 @@ We'll start by creating a SageMaker notebook instance, which we will use for the
 
 ## Starting the Module
 
-
 1. In the upper-right corner of the Jupyter Notebook, click the **New** button and select **Terminal**.
 
 ![Terminal](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/terminal.jpg)
