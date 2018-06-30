@@ -1,4 +1,5 @@
-# Bring Your Own Model to SageMaker - NVIDIA Model
+# Module 2: Bring Your Own Model to SageMaker - NVIDIA Model
+## Module Objective
 <details><summary><b>Note to self</b></summary><p>
 Explain why the built-in image classification algorithm can't be used here.
 </p></details>
