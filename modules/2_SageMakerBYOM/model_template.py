@@ -38,8 +38,8 @@ def build_model():
     """
     net = gluon.nn.Sequential()
     with net.name_scope():
-        net.add(gluon.nn.Lambda(lambda x: x/127.5-1.0)) #Normalization
-        # Complete the rest
+        net.add(gluon.nn.Lambda(lambda x: x/255)) # Normalization
+        # Complete the rest BLAH BLAH BLAH
 
     return net
 
