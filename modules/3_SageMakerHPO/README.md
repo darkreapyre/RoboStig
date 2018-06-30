@@ -1,1 +1,1 @@
-# SageMaker Hyperparameter Tuning
+# Module 3 - SageMaker Hyperparameter Tuning
