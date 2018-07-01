@@ -13,10 +13,14 @@ __Blah blah blah__
 1. Why are we doing this -> flexibility of SageMaker to support framework of preference (Keras and Tensorflow) <- might want to also mention that at the time of writing, Keras support MXNet as a backend.
 2. Talk about some different methods for preprocessing and color formats.-->
 
-Here are some suggested references that may help you:
+Here are some suggested resources that may help you:
 - [SageMaker Examples](https://github.com/awslabs/amazon-sagemaker-examples/tree/master/hyperparameter_tuning/keras_bring_your_own) for bringing your own model using the [Keras](https://keras.io) framework.
 - [SageMaker Examples]((https://github.com/awslabs/amazon-sagemaker-examples/tree/master/advanced_functionality/scikit_bring_your_own)) for bringing your own container.
 - Now that the [Keras](https://keras.io) framework also supports [MXNet](https://aws.amazon.com/blogs/machine-learning/apache-mxnet-incubating-adds-support-for-keras-2/), you make want to leverage your accomplishments from the first three modules with [Keras](https://keras.io). Additionally, this [blog](https://medium.com/datreeio/training-with-keras-mxnet-on-amazon-sagemaker-43a34bd668ca) post from an AWS Solution Architect could be helpful.
+- Support code for making machine learning frameworks run on Amazon SageMaker can be found [here](https://github.com/aws/sagemaker-containers)
+
+
+There is a useful Python library for building custom SageMaker Containers, called `sagemaker-containers`. 
 
 ### Option 2 (Advanced): Build your model using the other SageMaker pre-built frameworks.
 
