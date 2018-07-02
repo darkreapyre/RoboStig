@@ -42,11 +42,11 @@ Parameters:
   ModelPrefix: 
     Description: Prefix to prepend to resources created for the model.
     Type: String
-    Default: LinearLearner-HomePrices
+    Default: RoboStig
   TrainingInterval:
     Description: Number of days to look into the past for training data
     Type: String
-    Default: 7
+    Default: 
   BucketName:
     Description: Name to create S3 bucket that will hold training data and model artifacts with. Must contain 'sagemaker' in name.
     Type: String
@@ -57,7 +57,7 @@ Resources:
     Type: "AWS::Events::Rule"
     Properties:
       Name: ServerlessSageMakerOrchestrationRule
-      ScheduleExpression: rate(1 day)
+      ScheduleExpression: rate(15 minutes)
       State: "ENABLED"
       Targets: 
         - 
@@ -65,10 +65,16 @@ Resources:
           Id: "TargetFunctionV1"
           RoleArn: !GetAtt ExecuteStateMachineRole.Arn
 
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+
   Repository:
     Type: AWS::ECR::Repository
     DeletionPolicy: Delete
+    # Determine if there needs a to be an access folocy for ${WorkShopUser}
 
+## Determine if this is needed
 #  CloudFormationExecutionRole:
 #    Type: AWS::IAM::Role
 #    DeletionPolicy: Retain
@@ -123,7 +129,7 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                   - ecr:GetAuthorizationToken
-                  - cloudformation:Describe*
+#                  - cloudformation:Describe*
                   - codepipeline:Get*
                   - codebuild:BatchGetBuilds
               - Resource: !Sub arn:aws:s3:::${ArtifactBucket}/*
@@ -179,10 +185,6 @@ Resources:
                   - lambda:*
                   - iam:PassRole
                   - sns:Publish
-
-  ArtifactBucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Delete
 
   CodeBuildProject:
     Type: AWS::CodeBuild::Project
