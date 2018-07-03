@@ -38,7 +38,7 @@ COPY keras.json /root/.keras/
 
 RUN pip3 install --upgrade https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow_gpu-1.8.0-cp36-cp36m-linux_x86_64.whl
 
-RUN pip3 install --upgrade keras h5py numpy flask gevent gunicorn
+RUN pip3 install --upgrade keras h5py pandas flask gevent gunicorn
 
 RUN rm -rf /var/lib/apt/lists/*
 
@@ -55,4 +55,5 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 ENV PATH="/opt/program:${PATH}"
 
 # Set up the program in the image
+COPY src /opt/program
 WORKDIR /opt/program
