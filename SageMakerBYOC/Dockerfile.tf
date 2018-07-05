@@ -38,7 +38,7 @@ RUN pip --no-cache-dir install \
         keras \
         flask \
         gevent \
-        gunicorn
+        gunicorn \
         sklearn
 
 # --- DO NOT EDIT OR DELETE BETWEEN THE LINES --- #
