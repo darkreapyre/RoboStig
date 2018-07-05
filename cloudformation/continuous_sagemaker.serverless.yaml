@@ -254,7 +254,9 @@ Resources:
             pre_build:
               commands:
                 - printenv
-                - wget
+                - wget $DATA_SOURCE
+                - rm -rf __*
+                - aws s3 sync ./data 
 #          artifacts:
 #            files: cf_inputs.json
 #            discard-paths: yes
@@ -267,6 +269,8 @@ Resources:
             Value: !Ref AWS::Region
           - Name: DATA_SOURCE
             Value: "https://d17h27t6h515a5.cloudfront.net/topher/2016/December/584f6edd_data/data.zip"
+          - Name: S3_BUCKET
+            Value: !Ref S3Bucket
       Name: !Sub ${ModelPrefix}-trainingdata
       ServiceRole: !Ref CodeBuildServiceRole
 
