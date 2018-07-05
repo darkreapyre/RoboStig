@@ -68,5 +68,5 @@ ENV PATH="/opt/program:${PATH}"
 # Set up the program in the image
 COPY src /opt/program
 RUN chmod +x /opt/program/train
-RUN chmod+x /opt/program/serve
+RUN chmod +x /opt/program/serve
 WORKDIR /opt/program
