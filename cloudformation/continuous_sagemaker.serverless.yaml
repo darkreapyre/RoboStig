@@ -255,8 +255,9 @@ Resources:
               commands:
                 - printenv
                 - wget $DATA_SOURCE
+                - unzip data.zip
                 - rm -rf __*
-                - aws s3 sync ./data 
+                - aws s3 cp --recursive  ./data s3://$S3_BUCKET/data --acl public-read
 #          artifacts:
 #            files: cf_inputs.json
 #            discard-paths: yes
