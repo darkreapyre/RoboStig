@@ -39,7 +39,8 @@ RUN pip --no-cache-dir install \
         flask \
         gevent \
         gunicorn \
-        sklearn
+        sklearn \
+        opencv-python
 
 RUN pip --no-cache-dir install --upgrade\
     tensorflow-gpu
