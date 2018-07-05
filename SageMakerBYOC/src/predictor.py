@@ -82,15 +82,13 @@ def transformation():
 
     # Convert from json to numpy
     if flask.request.content_type == 'application/json':
-        parsed = json.loads(flask.request.data.decode('utf-8'))
+        parsed = json.loads(flask.request.data)
         data = np.array(parsed)
     else:
         return flask.Response(response='This predictor only supports json formatted data', status=415, mimetype='text/plain')
 
-    print('Invoked with {} records'.format(data.shape[0]))
-
     # Do the prediction
     predictions = ScoringService.predict(data)
-    result = json.dumps(predictions.asnumpy().tolist()[0])
+    result = json.dumps(predictions.tolist()[0])
 
     return flask.Response(response=result, status=200, mimetype='application/json')
