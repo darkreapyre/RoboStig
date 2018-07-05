@@ -1,7 +1,5 @@
 FROM nvidia/cuda:9.0-base-ubuntu16.04
 
-LABEL maintainer="Craig Citro <craigcitro@google.com>"
-
 # Pick up some TF dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
@@ -18,12 +16,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libpng12-dev \
         libzmq3-dev \
         pkg-config \
-        python \
         python-dev \
+        python3-dev \
         rsync \
         software-properties-common \
         unzip \
         libgtk2.0-dev \
+        git \
+        wget \
+        nginx \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
