@@ -14,7 +14,7 @@
 FROM nvidia/cuda:9.0-runtime
 
 RUN apt-get update && \
-    apt-get install \
+    apt-get install -y \
     build-essential \
     git \
     bzip2 \
