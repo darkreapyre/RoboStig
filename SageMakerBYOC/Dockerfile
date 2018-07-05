@@ -40,7 +40,7 @@ RUN pip --no-cache-dir install \
         gevent \
         gunicorn \
         sklearn \
-        opencv-python
+        opencv-python==3.4.0.12
 
 RUN pip --no-cache-dir install --upgrade\
     tensorflow-gpu
