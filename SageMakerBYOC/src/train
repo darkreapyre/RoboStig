@@ -42,93 +42,6 @@ EPOCHS = env.hyperparameters.get('epochs', default=25, object_type=int)
 # Location of the simulator data.
 data_dir = os.path.join(env.channel_dirs['train'], 'data')
 
-# Define the model
-def build_model():
-    """
-    Comma.ai model
-    """
-    model = Sequential()
-    model.add(Conv2D(16, (8, 8), strides=(4, 4), padding="same"))
-    model.add(ELU())
-    model.add(Conv2D(32, (5, 5), strides=(2, 2), padding="same"))
-    model.add(ELU())
-    model.add(Conv2D(64, (5, 5), strides=(2, 2), padding="same"))
-    model.add(Flatten())
-    model.add(Dropout(.2))
-    model.add(ELU())
-    model.add(Dense(512))
-    model.add(Dropout(.5))
-    model.add(ELU())
-    model.add(Dense(1))
-    return model
-
-# Helper to load an normalize images.
-def load_image(path, flip=False):
-    # Read the image from disk, and flip it if requested.
-    image = Image.open(path.strip())
-    if flip:
-        image = image.transpose(Image.FLIP_LEFT_RIGHT)
-    
-    # Normalize the image pixels to range -1 to 1.
-    image = np.array(image, np.float32)
-    image /= 127.5
-    image -= 1.
-    
-    # Slice off the top and bottom pixels to remove the sky
-    # and the hood of the car.
-    image = image[40:130, :]
-    
-    # Return the normalized image.
-    return image
-
-# Data generator.
-def generate_batches(images, angles, batch_size, augment=True):
-    # Create an array of sample indexes.
-    indexes = np.arange(len(images))
-    batch_images = []
-    batch_angles = []
-    sample_index = 0
-    while True:
-        # Reshuffle the indexes after each pass through the samples to minimize
-        # overfitting on the data.
-        np.random.shuffle(indexes)
-        for i in indexes:
-            # Increment the number of samples. 
-            sample_index += 1
-            
-            # Load the center image and weight.
-            center_image = load_image(images.iloc[i]['Center Image'])
-            center_angle = float(angles.iloc[i])
-            batch_images.append(center_image)
-            batch_angles.append(center_angle)
-            
-            # Add augmentation if requested
-            if augment:
-                # Load the flipped image and invert angle
-                flipped_image = load_image(images.iloc[i]['Center Image'], True)
-                flipped_angle = -1. * center_angle
-                batch_images.append(flipped_image)
-                batch_angles.append(flipped_angle)
-
-                # Load the left image and adjust angle
-                left_image = load_image(images.iloc[i]['Left Image'])
-                left_angle = min(1.0, center_angle + 0.25)
-                batch_images.append(left_image)
-                batch_angles.append(left_angle)
-                # Load the right image and adjust angle
-                right_image = load_image(images.iloc[i]['Right Image'])
-                right_angle = max(-1.0, center_angle - 0.25)
-                batch_images.append(right_image)
-                batch_angles.append(right_angle)
-            
-            # If we have processed batch_size samples or this is the last batch
-            # of the epoch, then submit the batch. Note that due to augmentation
-            # there may be more than batch_size elements in the batch.
-            if (sample_index % batch_size) == 0 or (sample_index % len(images)) == 0:
-                yield np.array(batch_images), np.array(batch_angles)
-                batch_images = []
-                batch_angles = []
-
 # Training function
 def train():
     print("Starting model training ...")
@@ -146,24 +59,100 @@ def train():
 
     # Split the data into training and validation sets.
     images_train, images_validation, angles_train, angles_validation = train_test_split(images, angles, test_size=0.15, random_state=42)
-    samples_per_epoch = 4 * len(images_train)
-    generator_train = generate_batches(images_train, angles_train, batch_size)
-    nb_val_samples = len(images_validation)
-    generator_validation = generate_batches(images_validation, angles_validation, batch_size, augment=False)
 
     # Run the model.
-    model = build_model()
+    model = Sequential()
+    model.add(Conv2D(16, (8, 8), strides=(4, 4), padding="same"))
+    model.add(ELU())
+    model.add(Conv2D(32, (5, 5), strides=(2, 2), padding="same"))
+    model.add(ELU())
+    model.add(Conv2D(64, (5, 5), strides=(2, 2), padding="same"))
+    model.add(Flatten())
+    model.add(Dropout(.2))
+    model.add(ELU())
+    model.add(Dense(512))
+    model.add(Dropout(.5))
+    model.add(ELU())
+    model.add(Dense(1))
     
     # Select the optimizer and compile the model.
     optimizer = Adam(lr=learning_rate)
     model.compile(loss='mse', optimizer=optimizer)
-    model.fit_generator(
-        generator_train,
-        samples_per_epoch=samples_per_epoch,
-        nb_epoch=EPOCHS,
-        validation_data=generator_validation,
-        nb_val_samples=nb_val_samples
-    )
+
+    # Helper to load an normalize images.
+    def load_image(path, flip=False):
+        # Read the image from disk, and flip it if requested.
+        image = Image.open(path.strip())
+        if flip:
+            image = image.transpose(Image.FLIP_LEFT_RIGHT)
+        
+        # Normalize the image pixels to range -1 to 1.
+        image = np.array(image, np.float32)
+        image /= 127.5
+        image -= 1.
+        
+        # Slice off the top and bottom pixels to remove the sky
+        # and the hood of the car.
+        image = image[40:130, :]
+        
+        # Return the normalized image.
+        return image
+
+    # Data generator.
+    def generate_batches(images, angles, batch_size, augment=True):
+        # Create an array of sample indexes.
+        indexes = np.arange(len(images))
+        batch_images = []
+        batch_angles = []
+        sample_index = 0
+        while True:
+            # Reshuffle the indexes after each pass through the samples to minimize
+            # overfitting on the data.
+            np.random.shuffle(indexes)
+            for i in indexes:
+                # Increment the number of samples. 
+                sample_index += 1
+                
+                # Load the center image and weight.
+                center_image = load_image(images.iloc[i]['Center Image'])
+                center_angle = float(angles.iloc[i])
+                batch_images.append(center_image)
+                batch_angles.append(center_angle)
+                
+                # Add augmentation if requested
+                if augment:
+                    # Load the flipped image and invert angle
+                    flipped_image = load_image(images.iloc[i]['Center Image'], True)
+                    flipped_angle = -1. * center_angle
+                    batch_images.append(flipped_image)
+                    batch_angles.append(flipped_angle)
+
+                    # Load the left image and adjust angle
+                    left_image = load_image(images.iloc[i]['Left Image'])
+                    left_angle = min(1.0, center_angle + 0.25)
+                    batch_images.append(left_image)
+                    batch_angles.append(left_angle)
+                    # Load the right image and adjust angle
+                    right_image = load_image(images.iloc[i]['Right Image'])
+                    right_angle = max(-1.0, center_angle - 0.25)
+                    batch_images.append(right_image)
+                    batch_angles.append(right_angle)
+                
+                # If we have processed batch_size samples or this is the last batch
+                # of the epoch, then submit the batch. Note that due to augmentation
+                # there may be more than batch_size elements in the batch.
+                if (sample_index % batch_size) == 0 or (sample_index % len(images)) == 0:
+                    yield np.array(batch_images), np.array(batch_angles)
+                    batch_images = []
+                    batch_angles = []
+    
+    # Initialize Generators.
+    nb_epoch = EPOCHS
+    samples_per_epoch = 4 * len(images_train)
+    generator_train = generate_batches(images_train, angles_train, batch_size)
+    nb_val_samples = len(images_validation)
+    generator_validation = generate_batches(images_validation, angles_validation, batch_size, augment=False)
+    model.fit_generator(generator_train, samples_per_epoch=samples_per_epoch, nb_epoch=nb_epoch, validation_data=generator_validation, nb_val_samples=nb_val_samples)
 
     # Save the generated model and weights.
     model.save(os.path.join(model_dir, 'model.h5'))
