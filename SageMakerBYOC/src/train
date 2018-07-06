@@ -19,6 +19,8 @@ from __future__ import print_function
 
 # Import libraries necessary for this project.
 import json
+import os
+import sys
 import numpy as np
 import pandas as pd
 from keras.models import Sequential
@@ -163,9 +165,9 @@ def train():
     # Split the data into training and validation sets.
     images_train, images_validation, angles_train, angles_validation = train_test_split(images, angles, test_size=0.15, random_state=42)
     samples_per_epoch = 4 * len(images_train)
-    generator_train = generate_batches(images_train, angles_train)
+    generator_train = generate_batches(images_train, angles_train, batch_size)
     nb_val_samples = len(images_validation)
-    generator_validation = generate_batches(images_validation, angles_validation, augment=False)
+    generator_validation = generate_batches(images_validation, angles_validation, batch_size, augment=False)
 
     # Run the model.
     model = build_model()
