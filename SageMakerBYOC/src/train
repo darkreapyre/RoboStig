@@ -60,9 +60,7 @@ def build_model():
     model.add(Dropout(.5))
     model.add(ELU())
     model.add(Dense(1))
-    model.summary()
     return model
-
 
 # Helper to load an normalize images.
 def load_image(path, flip=False):
