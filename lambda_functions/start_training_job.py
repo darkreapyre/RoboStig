@@ -2,8 +2,9 @@ import boto3
 import os
 
 # Customer Keras container
-CONTAINER = {'us-west-2': '500842391574.dkr.ecr.us-west-2.amazonaws.com/pystig-keras:latest'}
-REGION = boto3.session.Session().region_name
+#CONTAINER = {'us-west-2': '500842391574.dkr.ecr.us-west-2.amazonaws.com/pystig:train'}
+#REGION = boto3.session.Session().region_name
+#CONTAINER = {str(REGION): str(os.environ[CONTAINER])}
 
 # Instance type to train on
 TRAINING_INSTANCE_TYPE = os.environ['TRAINING_INSTANCE_TYPE']
@@ -18,7 +19,8 @@ def lambda_handler(event, context):
     time = event['time']
     model_prefix = event['endpoint']
     train_manifest_uri = event['train_manifest_uri']
-    container = CONTAINER[REGION]
+    container = os.environ[CONTAINER]
+#    container = CONTAINER[REGION]
     s3_output_path = event['s3_output_path']
     name = '{}-{}'.format(model_prefix, time).replace(':', '-')
     print('Starting training job...')

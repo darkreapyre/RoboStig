@@ -71,7 +71,7 @@ Resources:
     Type: AWS::ECR::Repository
     DeletionPolicy: Delete
     Properties:
-      RepositoryName: !Sub ${ModelPrefix}-keras
+      RepositoryName: !Sub ${ModelPrefix}
       RepositoryPolicyText:
         Version: "2012-10-17"
         Statement:
@@ -265,7 +265,7 @@ Resources:
 #                - aws s3 cp s3://${TemplateBucket}/training_input/parameters.json ./src/parameters.json
 #                - echo -n "$CODEBUILD_LOG_PATH" > /tmp/build_id.out
 #                - printf "%s:%s" "$REPOSITORY_URI" "$(cat /tmp/build_id.out)" > /tmp/build_tag.out
-                - printf "%s:%s" "$REPOSITORY_URI" "latest" > /tmp/build_tag.out
+                - printf "%s:%s" "$REPOSITORY_URI" "serve" > /tmp/build_tag.out
                 - printf '{"tag":"%s"}' "$(cat /tmp/build_tag.out)" > /tmp/build.json
                 - $(aws ecr get-login --no-include-email)
             build:
@@ -709,6 +709,7 @@ Resources:
         Variables:
           SAGEMAKER_ROLE: !Ref SageMakerExecutionRole
           TRAINING_INSTANCE_TYPE: !Ref TrainingInstanceType
+          CONTAINER: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}:train
       Policies:
         - AWSLambdaBasicExecutionRole
         - Version: "2012-10-17"
