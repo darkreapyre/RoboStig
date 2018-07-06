@@ -296,7 +296,7 @@ def train():
         ),
         nb_val_samples=len(X_valid),
         callbacks=[checkpoint],
-        verbose=1
+        verbose=0
     )
 
     # Save the model
