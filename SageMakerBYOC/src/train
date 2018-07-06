@@ -264,7 +264,7 @@ def train():
         
     # Save model Checpoint
     checkpoint = ModelCheckpoint(
-        os.path.join(env.model_dir, 'model-{epoch:03d}.h5',
+        os.path.join(env.model_dir, 'model-{epoch:03d}.h5'),
         verbose=0,
         save_best_only=1,
         mode='auto'
