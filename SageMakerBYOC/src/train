@@ -240,7 +240,8 @@ def save(model, model_dir):
     best = max(files)
     
     # Rename the best weights
-    os.rename(best, MODEL_NAME)
+    #os.rename(best, MODEL_NAME)
+    shutil.copy(best, os.path.join(model_dir, MODEL_NAME))
     
     # Move to model_dir
     #shutil.copy('./model.h5', model_dir+'/')
