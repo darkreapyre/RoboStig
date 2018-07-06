@@ -25,7 +25,7 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
     wget \
     curl \
     nginx \
-    ca-certificates
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Install all of the packages
