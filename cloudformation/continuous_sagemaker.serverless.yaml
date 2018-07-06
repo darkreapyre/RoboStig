@@ -75,7 +75,18 @@ Resources:
     Type: AWS::ECR::Repository
     DeletionPolicy: Delete
     Properties:
-      RepositoryName: !Ref ModelPrefix
+      RepositoryName: !Sub ${ModelPrefix}-keras
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: AllowPull
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - ecr:GetDownloadUrlForLayer
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
 
 ## Determine if this is needed
 #  CloudFormationExecutionRole:
