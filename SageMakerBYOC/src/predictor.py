@@ -37,10 +37,9 @@ from keras.models import load_model
 prefix = '/opt/ml'
 model_path = os.path.join(prefix, 'model')
 
-
 # Configure the trainer environemnt for SageMaker training
-env = create_trainer_environment()
-print('creating SageMaker trainer environment:\n%s' % str(env))
+#env = create_trainer_environment()
+#print('creating SageMaker trainer environment:\n%s' % str(env))
 
 class ScoringService(object):
     model = None                # Where we keep the model when it's loaded
