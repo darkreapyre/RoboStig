@@ -99,7 +99,7 @@ def train():
         return image
 
     # Data generator.
-    def generate_batches(images, angles, batch_size, augment=True):
+    def generate_batches(images, angles, batch_size=64, augment=True):
         # Create an array of sample indexes.
         indexes = np.arange(len(images))
         batch_images = []
