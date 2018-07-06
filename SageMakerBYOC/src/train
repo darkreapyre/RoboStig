@@ -17,290 +17,172 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import keras
-from keras.preprocessing.image import *
-from keras.models import Sequential, Model
-from keras.layers import Conv2D, Flatten, Lambda, ELU
-from keras.layers.core import Dense, Dropout, Activation
-from keras.optimizers import Adam
-from keras.callbacks import Callback, ModelCheckpoint
-from keras.layers.normalization import BatchNormalization
-from keras.regularizers import l2
-from sklearn.model_selection import train_test_split
-import os, shutil, random, json, glob, cv2, sys, traceback
+# Import libraries necessary for this project.
+import json
 import numpy as np
 import pandas as pd
-import matplotlib.image as mpimg
-
+from keras.models import Sequential
+from keras.layers import Activation, Conv2D, Dense, Dropout, ELU, Flatten
+from keras.optimizers import Adam
+from PIL import Image
+from sklearn.model_selection import train_test_split
 from environment import create_trainer_environment
-
-# Global parameters
-IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 66, 200, 3
-IMAGE_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
-MODEL_NAME = 'model.h5'
 
 # Configure the trainer environemnt for SageMaker training
 env = create_trainer_environment()
 print('creating SageMaker trainer environment:\n%s' % str(env))
 
 # Get hyperparameters
-batch_size = env.hyperparameters.get('batch_size', object_type=int)
-learning_rate = env.hyperparameters.get('learning_rate', default=.0001, object_type=float)
-EPOCHS = env.hyperparameters.get('epochs', default=10, object_type=int)
+batch_size = env.hyperparameters.get('batch_size', default=64, object_type=int)
+learning_rate = env.hyperparameters.get('learning_rate', default=.001, object_type=float)
+EPOCHS = env.hyperparameters.get('epochs', default=25, object_type=int)
 
-# Helper functions for Image Augmentation
-def load_image(data_dir, image_file):
-    """
-    Load RGB images from a file
-    """
-    return mpimg.imread(os.path.join(data_dir, image_file.strip()))
+# Location of the simulator data.
+data_dir = os.path.join(env.channel_dirs['train'], 'data')
 
-def crop(image):
-    """
-    Crop the image (removing the sky at the top and the car front at the bottom)
-    """
-    return image[60:-25, :, :] # remove the sky and the car front
-
-def resize(image):
-    """
-    Resize the image to the input shape used by the network model
-    """
-    return cv2.resize(image, (IMAGE_WIDTH, IMAGE_HEIGHT), cv2.INTER_AREA)
-
-def rgb2yuv(image):
-    """
-    Convert the image from RGB to YUV (This is what the NVIDIA model does)
-    """
-    return cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
-
-def preprocess(image):
-    """
-    Combine all preprocess functions into one
-    """
-    image = crop(image)
-    image = resize(image)
-    image = rgb2yuv(image)
-    return image
-
-def choose_image(data_dir, center, left, right, steering_angle):
-    """
-    Randomly choose an image from the center, left or right, and adjust
-    the steering angle.
-    """
-    choice = np.random.choice(3)
-    if choice == 0:
-        return load_image(data_dir, left), steering_angle + 0.2
-    elif choice == 1:
-        return load_image(data_dir, right), steering_angle - 0.2
-    return load_image(data_dir, center), steering_angle
-
-def random_flip(image, steering_angle):
-    """
-    Randomly flipt the image left <-> right, and adjust the steering angle.
-    """
-    if np.random.rand() < 0.5:
-        image = cv2.flip(image, 1)
-        steering_angle = -steering_angle
-    return image, steering_angle
-
-def random_translate(image, steering_angle, range_x, range_y):
-    """
-    Randomly shift the image virtially and horizontally (translation).
-    """
-    trans_x = range_x * (np.random.rand() - 0.5)
-    trans_y = range_y * (np.random.rand() - 0.5)
-    steering_angle += trans_x * 0.002
-    trans_m = np.float32([[1, 0, trans_x], [0, 1, trans_y]])
-    height, width = image.shape[:2]
-    image = cv2.warpAffine(image, trans_m, (width, height))
-    return image, steering_angle
-
-def distort(image):
-    """
-    Method for adding random distortion to dataset images, including random brightness adjust, and a random
-    vertical shift of the horizon position
-    """
-    new_img = image.astype(float)
-    # random brightness - the mask bit keeps values from going beyond (0,255)
-    value = np.random.randint(-28, 28)
-    if value > 0:
-        mask = (new_img[:,:,0] + value) > 255 
-    if value <= 0:
-        mask = (new_img[:,:,0] + value) < 0
-    new_img[:,:,0] += np.where(mask, 0, value)
-    # random shadow - full height, random left/right side, random darkening
-    h,w = new_img.shape[0:2]
-    mid = np.random.randint(0,w)
-    factor = np.random.uniform(0.6,0.8)
-    if np.random.rand() > .5:
-        new_img[:,0:mid,0] *= factor
-    else:
-        new_img[:,mid:w,0] *= factor
-    # randomly shift horizon
-    h,w,_ = new_img.shape
-    horizon = 2*h/5
-    v_shift = np.random.randint(-h/8,h/8)
-    pts1 = np.float32([[0,horizon],[w,horizon],[0,h],[w,h]])
-    pts2 = np.float32([[0,horizon+v_shift],[w,horizon+v_shift],[0,h],[w,h]])
-    M = cv2.getPerspectiveTransform(pts1,pts2)
-    new_img = cv2.warpPerspective(new_img,M,(w,h), borderMode=cv2.BORDER_REPLICATE)
-    return new_img.astype(np.uint8)
-
-def random_brightness(image):
-    """
-    Randomly adjust brightness of the image.
-    """
-    # HSV (Hue, Saturation, Value) is also called HSB ('B' for Brightness).
-    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-    ratio = 1.0 + 0.4 * (np.random.rand() - 0.5)
-    hsv[:,:,2] =  hsv[:,:,2] * ratio
-    return cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
-
-def augument(data_dir, center, left, right, steering_angle, range_x=100, range_y=10):
-    """
-    Generate an augumented image and adjust steering angle.
-    (The steering angle is associated with the center image)
-    """
-    image, steering_angle = choose_image(data_dir, center, left, right, steering_angle)
-    image, steering_angle = random_flip(image, steering_angle)
-    image, steering_angle = random_translate(image, steering_angle, range_x, range_y)
-    image = distort(image)
-    image = random_brightness(image)
-    return image, steering_angle
-
-def batch_generator(data_dir, image_paths, steering_angles, batch_size, is_training):
-    """
-    Generate training image give image paths and associated steering angles
-    """
-    images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
-    steers = np.empty(batch_size)
-    while True:
-        i = 0
-        for index in np.random.permutation(image_paths.shape[0]):
-            center, left, right = image_paths[index]
-            steering_angle = steering_angles[index]
-            # argumentation
-            if is_training and np.random.rand() < 0.6:
-                image, steering_angle = augument(data_dir, center, left, right, steering_angle)
-            else:
-                image = load_image(data_dir, center) 
-            # add the image and steering angle to the batch
-            images[i] = preprocess(image)
-            steers[i] = steering_angle
-            i += 1
-            if i == batch_size:
-                break
-        yield images, steers
-
-# Helper functions for model training
-def load_data(data_dir, test_size):
-    """
-    Load training data and split it into training and validation set
-    """
-    data_df = pd.read_csv(os.path.join(data_dir, 'driving_log.csv'))
-
-    X = data_df[['center', 'left', 'right']].values
-    y = data_df['steering'].values
-
-    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=test_size, random_state=0)
-
-    return X_train, X_valid, y_train, y_valid
-
-def build_model(input_shape):
-    """
-    Comma.ai model
-    """
+# Define the model
+def build_model():
     model = Sequential()
-    model.add(
-        Lambda(
-            lambda x: x/127.55 -1,
-            input_shape=input_shape
-        )
-    )
-    model.add(Conv2D(16, (8, 8), strides=(4, 4), padding="same"))
+    model.add(Conv2D(3, 1, 1, input_shape=(90, 320, 3)))
     model.add(ELU())
-    model.add(Conv2D(32, (5, 5), strides=(2, 2), padding="same"))
+    model.add(Dropout(0.5))
+    model.add(Conv2D(3, 5, 5, subsample=(2, 2)))
     model.add(ELU())
-    model.add(Conv2D(64, (5, 5), strides=(2, 2), padding="same"))
+    model.add(Dropout(0.5))
+    model.add(Conv2D(24, 5, 5, subsample=(2, 2)))
+    model.add(ELU())
+    model.add(Dropout(0.5))
+    model.add(Conv2D(36, 5, 5, subsample=(2, 2)))
+    model.add(ELU())
+    model.add(Dropout(0.5))
+    model.add(Conv2D(48, 3, 3))
+    model.add(ELU())
+    model.add(Dropout(0.5))
+    model.add(Conv2D(64, 3, 3))
+    model.add(ELU())
+    model.add(Dropout(0.5))
+    model.add(Conv2D(128, 3, 3))
+    model.add(ELU())
+    model.add(Dropout(0.5))
     model.add(Flatten())
-    model.add(Dropout(.2))
+    model.add(Dense(100))
     model.add(ELU())
-    model.add(Dense(512))
-    model.add(Dropout(.5))
+    model.add(Dropout(0.5))
+    model.add(Dense(50))
     model.add(ELU())
+    model.add(Dropout(0.5))
+    model.add(Dense(10))
+    model.add(ELU())
+    model.add(Dropout(0.5))
     model.add(Dense(1))
     model.summary()
     return model
 
-def save(model, model_dir):
-    print("Saving the trained model ...")
-    files = list(glob.glob(os.path.join(model_dir, '*.h5')))
+# Helper to load an normalize images.
+def load_image(path, flip=False):
+    # Read the image from disk, and flip it if requested.
+    image = Image.open(path.strip())
+    if flip:
+        image = image.transpose(Image.FLIP_LEFT_RIGHT)
     
-    # Find the best model weights
-    best = max(files)
+    # Normalize the image pixels to range -1 to 1.
+    image = np.array(image, np.float32)
+    image /= 127.5
+    image -= 1.
     
-    # Rename the best weights
-    #os.rename(best, MODEL_NAME)
-    shutil.copy(best, os.path.join(model_dir, MODEL_NAME))
+    # Slice off the top and bottom pixels to remove the sky
+    # and the hood of the car.
+    image = image[40:130, :]
     
-    # Move to model_dir
-    #shutil.copy('./model.h5', model_dir+'/')
-    
-#    # Save model graph to `.json`
-#    model_json = model.to_json()
-#    with open(model_dir+'/model.json', 'w') as outfile:
-#        json.dump(model_json, outfile)
+    # Return the normalized image.
+    return image
+
+# Data generator.
+def generate_batches(images, angles, batch_size, augment=True):
+    # Create an array of sample indexes.
+    indexes = np.arange(len(images))
+    batch_images = []
+    batch_angles = []
+    sample_index = 0
+    while True:
+        # Reshuffle the indexes after each pass through the samples to minimize
+        # overfitting on the data.
+        np.random.shuffle(indexes)
+        for i in indexes:
+            # Increment the number of samples. 
+            sample_index += 1
+            
+            # Load the center image and weight.
+            center_image = load_image(images.iloc[i]['Center Image'])
+            center_angle = float(angles.iloc[i])
+            batch_images.append(center_image)
+            batch_angles.append(center_angle)
+            
+            # Add augmentation if requested
+            if augment:
+                # Load the flipped image and invert angle
+                flipped_image = load_image(images.iloc[i]['Center Image'], True)
+                flipped_angle = -1. * center_angle
+                batch_images.append(flipped_image)
+                batch_angles.append(flipped_angle)
+
+                # Load the left image and adjust angle
+                left_image = load_image(images.iloc[i]['Left Image'])
+                left_angle = min(1.0, center_angle + 0.25)
+                batch_images.append(left_image)
+                batch_angles.append(left_angle)
+                # Load the right image and adjust angle
+                right_image = load_image(images.iloc[i]['Right Image'])
+                right_angle = max(-1.0, center_angle - 0.25)
+                batch_images.append(right_image)
+                batch_angles.append(right_angle)
+            
+            # If we have processed batch_size samples or this is the last batch
+            # of the epoch, then submit the batch. Note that due to augmentation
+            # there may be more than batch_size elements in the batch.
+            if (sample_index % batch_size) == 0 or (sample_index % len(images)) == 0:
+                yield np.array(batch_images), np.array(batch_angles)
+                batch_images = []
+                batch_angles = []
 
 # Training function
 def train():
     print("Starting model training ...")
+    
     # Local variables
-    data_dir = os.path.join(env.channel_dirs['train'], 'data')
-    test_size = 0.1
+    DATA_FILE = os.path.join(data_dir, 'driving_log.csv')
 
-    # Load the data
-    X_train, X_valid, y_train, y_valid = load_data(data_dir, test_size)
-        
-    # Load the model and additional parameters
-    model = build_model(IMAGE_SHAPE)
-        
-    # Save model Checpoint
-    checkpoint = ModelCheckpoint(
-        os.path.join(env.model_dir, 'model-{epoch:03d}.h5'),
-        verbose=0,
-        save_best_only=1,
-        mode='auto'
-    )
+    # Load the training data from the simulator.
+    cols = ['Center Image', 'Left Image', 'Right Image', 'Steering Angle', 'Throttle', 'Break', 'Speed']
+    data = pd.read_csv(DATA_FILE, names=cols, header=1)
 
-    # Compile model
-    model.compile(loss='mean_squared_error', optimizer=Adam(lr=learning_rate))
-        
-    # Fit the model
+    # Separate the image paths and steering angles.
+    images = data[['Center Image', 'Left Image', 'Right Image']]
+    angles = data['Steering Angle']
+
+    # Split the data into training and validation sets.
+    images_train, images_validation, angles_train, angles_validation = train_test_split(images, angles, test_size=0.15, random_state=42)
+    samples_per_epoch = 4 * len(images_train)
+    generator_train = generate_batches(images_train, angles_train)
+    nb_val_samples = len(images_validation)
+    generator_validation = generate_batches(images_validation, angles_validation, augment=False)
+
+    # Run the model.
+    model = build_model()
+    
+    # Select the optimizer and compile the model.
+    optimizer = Adam(lr=learning_rate)
+    model.compile(loss='mse', optimizer=optimizer)
     model.fit_generator(
-        batch_generator(
-            data_dir,
-            X_train,
-            y_train,
-            batch_size,
-            True
-        ),
-        steps_per_epoch=4 * len(X_train),
-        epochs=EPOCHS,
-#        max_queue_size=1,
-        validation_data=batch_generator(
-            data_dir,
-            X_valid,
-            y_valid,
-            batch_size,
-            False
-        ),
-        validation_steps=len(X_valid),
-        callbacks=[checkpoint],
-        verbose=1
+        generator_train,
+        samples_per_epoch=samples_per_epoch,
+        nb_epoch=nb_epoch,
+        validation_data=generator_validation,
+        nb_val_samples=nb_val_samples
     )
 
-    # Save the model
-    save(model, env.model_dir)
+    # Save the generated model and weights.
+    model.save(os.path.join(model_dir, 'model.h5'))
 
 if __name__ == '__main__':
     train()

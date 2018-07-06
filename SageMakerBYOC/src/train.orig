@@ -30,6 +30,7 @@ from sklearn.model_selection import train_test_split
 import os, shutil, random, json, glob, cv2, sys, traceback
 import numpy as np
 import pandas as pd
+import matplotlib.image as mpimg
 
 from environment import create_trainer_environment
 
@@ -233,16 +234,17 @@ def build_model(input_shape):
 
 def save(model, model_dir):
     print("Saving the trained model ...")
-    files = list(glob.glob(os.path.join('./', '*.h5')))
+    files = list(glob.glob(os.path.join(model_dir, '*.h5')))
     
     # Find the best model weights
     best = max(files)
     
     # Rename the best weights
-    os.rename(best, MODEL_NAME)
+    #os.rename(best, MODEL_NAME)
+    shutil.copy(best, os.path.join(model_dir, MODEL_NAME))
     
     # Move to model_dir
-    shutil.copy('./model.h5', model_dir+'/')
+    #shutil.copy('./model.h5', model_dir+'/')
     
 #    # Save model graph to `.json`
 #    model_json = model.to_json()
@@ -252,65 +254,53 @@ def save(model, model_dir):
 # Training function
 def train():
     print("Starting model training ...")
-    try:
-        # Local variables
-        data_dir = os.path.join(env.channel_dirs['train'], 'data')
-        test_size = 0.1
+    # Local variables
+    data_dir = os.path.join(env.channel_dirs['train'], 'data')
+    test_size = 0.1
 
-        # Load the data
-        X_train, X_valid, y_train, y_valid = load_data(data_dir, test_size)
+    # Load the data
+    X_train, X_valid, y_train, y_valid = load_data(data_dir, test_size)
         
-        # Load the model and additional parameters
-        model = build_model(IMAGE_SHAPE)
+    # Load the model and additional parameters
+    model = build_model(IMAGE_SHAPE)
         
-        # Save model Checpoint
-        checkpoint = ModelCheckpoint(
-            'model-{epoch:03d}.h5',
-            verbose=0,
-            save_best_only=1,
-            mode='auto'
-        )
+    # Save model Checpoint
+    checkpoint = ModelCheckpoint(
+        os.path.join(env.model_dir, 'model-{epoch:03d}.h5'),
+        verbose=0,
+        save_best_only=1,
+        mode='auto'
+    )
 
-        # Compile model
-        model.compile(loss='mean_squared_error', optimizer=Adam(lr=learning_rate))
+    # Compile model
+    model.compile(loss='mean_squared_error', optimizer=Adam(lr=learning_rate))
         
-        # Fit the model
-        model.fit_generator(
-            batch_generator(
-                data_dir,
-                X_train,
-                y_train,
-                batch_size,
-                True
-            ),
-            2000, # Samples per epoch
-            EPOCHS, # Number of epochs
-            max_q_size=1,
-            validation_data=batch_generator(
-                data_dir,
-                X_valid,
-                y_valid,
-                batch_size,
-                False
-            ),
-            nb_val_samples=len(X_valid),
-            callbacks=[checkpoint],
-            verbose=1
-        )
+    # Fit the model
+    model.fit_generator(
+        batch_generator(
+            data_dir,
+            X_train,
+            y_train,
+            batch_size,
+            True
+        ),
+        steps_per_epoch=20000,
+        epochs=EPOCHS,
+#        max_queue_size=1,
+        validation_data=batch_generator(
+            data_dir,
+            X_valid,
+            y_valid,
+            batch_size,
+            False
+        ),
+        validation_steps=len(X_valid),
+        callbacks=[checkpoint],
+        verbose=1
+    )
 
-        # Save the model
-        save(model, env.model_dir)
-
-    except Exception as e:
-        # Write out an error file. This will be returned as the failureReason in the
-        # DescribeTrainingJob result.
-        trc = traceback.format_exc()
-        with open(os.path.join(env.output_dir, 'failure'), 'w') as s:
-            s.write('Exception during training: ' + str(e) + '\n' + trc)
-        # Printing this causes the exception to be in the training job logs, as well.
-        print('Exception during training: ' + str(e) + '\n' + trc, file=sys.stderr)
-        # A non-zero exit code causes the training job to be marked as Failed.
-        sys.exit(255)
+    # Save the model
+    save(model, env.model_dir)
 
 if __name__ == '__main__':
     train()
