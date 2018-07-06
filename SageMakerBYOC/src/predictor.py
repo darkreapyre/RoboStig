@@ -28,10 +28,15 @@ import signal
 import traceback
 import flask
 import numpy as np
+import tensorflow as tf
 
+from keras import backend as K
 from keras.models import load_model
 
-from environment import create_trainer_environment
+#from environment import create_trainer_environment
+prefix = '/opt/ml'
+model_path = os.path.join(prefix, 'model')
+
 
 # Configure the trainer environemnt for SageMaker training
 env = create_trainer_environment()
@@ -56,8 +61,10 @@ class ScoringService(object):
             input: The data on which to do the predictions. There will be
                 one prediction per row in the dataframe
         """
-        clf = cls.get_model()
-        return clf.predict(input, batch_size=1)
+        sess = K.get_session()
+        with sess.graph.as_default():
+            clf = cls.get_model()
+            return clf.predict(input, batch_size=1)
 
 # The flask app for serving predictions
 app = flask.Flask(__name__)
