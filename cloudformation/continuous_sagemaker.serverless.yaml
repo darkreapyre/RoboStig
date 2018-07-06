@@ -26,7 +26,7 @@ Parameters:
   TrainingInstanceType:
     Description: Instance type to launch trained production model endpoint with. 
     Type: String
-    Default: ml.c4.xlarge
+    Default: ml.p3.2xlarge
   ProductionInstanceType:
     Description: Instance type to launch trained production model endpoint with. 
     Type: String
@@ -726,7 +726,6 @@ Resources:
       Description: 'Starts model training job'
       Environment:
         Variables:
-          FEATURE_DIM: !Ref FeatureDimension
           SAGEMAKER_ROLE: !Ref SageMakerExecutionRole
           TRAINING_INSTANCE_TYPE: !Ref TrainingInstanceType
       Policies:
