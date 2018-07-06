@@ -188,8 +188,8 @@ def batch_generator(data_dir, image_paths, steering_angles, batch_size, is_train
             images[i] = preprocess(image)
             steers[i] = steering_angle
             i += 1
-            if i == batch_size:
-                break
+#            if i == batch_size:
+#                break
         yield images, steers
 
 # Helper functions for model training
@@ -284,9 +284,9 @@ def train():
             batch_size,
             True
         ),
-        2000, # Samples per epoch
-        EPOCHS, # Number of epochs
-        max_q_size=1,
+        steps_per_epoch=4 * len(X_train),
+        epochs=EPOCHS,
+#        max_queue_size=1,
         validation_data=batch_generator(
             data_dir,
             X_valid,
@@ -294,7 +294,7 @@ def train():
             batch_size,
             False
         ),
-        nb_val_samples=len(X_valid),
+        validation_steps=len(X_valid),
         callbacks=[checkpoint],
         verbose=1
     )
