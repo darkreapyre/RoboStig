@@ -21,7 +21,7 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
     libjemalloc-dev \
     libgfortran3 \
     libgtk2.0-dev \
-    python \
+    python-dev \
     wget \
     curl \
     nginx \
