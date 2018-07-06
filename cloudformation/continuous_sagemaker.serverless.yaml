@@ -19,10 +19,6 @@ Parameters:
     Type: String
     Description: >
       Token for the user specified above. (https://github.com/settings/tokens)
-  WorkShopUser:
-    Type: String
-    Description: IAM Account for Workshop attendees to use.
-    Default: SageMakerWorkShopUser
   TrainingInstanceType:
     Description: Instance type to launch trained production model endpoint with. 
     Type: String
@@ -201,7 +197,53 @@ Resources:
                   - iam:PassRole
 #                  - sns:Publish
 
-  ContainerBuildProject:
+  TrainContainerBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: !Sub |
+          version: 0.2
+          phases:
+            install:
+              commands:
+                - apt-get update && apt-get -y install python-pip
+                - pip install --upgrade python
+                - pip install --upgrade awscli
+            pre_build:
+              commands: 
+                - printenv
+#                - aws s3 cp s3://${TemplateBucket}/predict_input/params.h5 ./src/params.h5
+#                - aws s3 cp s3://${TemplateBucket}/training_input/parameters.json ./src/parameters.json
+#                - echo -n "$CODEBUILD_LOG_PATH" > /tmp/build_id.out
+#                - printf "%s:%s" "$REPOSITORY_URI" "$(cat /tmp/build_id.out)" > /tmp/build_tag.out
+                - printf "%s:%s" "$REPOSITORY_URI" "train" > /tmp/build_tag.out
+                - printf '{"tag":"%s"}' "$(cat /tmp/build_tag.out)" > /tmp/build.json
+                - $(aws ecr get-login --no-include-email)
+            build:
+              commands:
+                - docker build -t "$(cat /tmp/build_tag.out)" -f Dockerfile.train .
+            post_build:
+              commands:
+                - docker push "$(cat /tmp/build_tag.out)"
+          artifacts:
+            files: /tmp/build.json
+            discard-paths: yes
+      Environment:
+        ComputeType: "BUILD_GENERAL1_SMALL"
+        Image: "aws/codebuild/docker:17.09.0"
+        Type: "LINUX_CONTAINER"
+        EnvironmentVariables:
+          - Name: AWS_DEFAULT_REGION
+            Value: !Ref AWS::Region
+          - Name: REPOSITORY_URI
+            Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}
+      Name: train-container build
+      ServiceRole: !Ref CodeBuildServiceRole
+
+  ServeContainerBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
       Artifacts:
@@ -228,7 +270,7 @@ Resources:
                 - $(aws ecr get-login --no-include-email)
             build:
               commands:
-                - docker build -t "$(cat /tmp/build_tag.out)" .
+                - docker build -t "$(cat /tmp/build_tag.out)" -f Dockerfile.serve .
             post_build:
               commands:
                 - docker push "$(cat /tmp/build_tag.out)"
@@ -244,7 +286,7 @@ Resources:
             Value: !Ref AWS::Region
           - Name: REPOSITORY_URI
             Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}
-      Name: !Sub ${ModelPrefix}-containerbuild
+      Name: serve-container-build
       ServiceRole: !Ref CodeBuildServiceRole
 
   DataUploadProject:
@@ -283,7 +325,7 @@ Resources:
             Value: "https://d17h27t6h515a5.cloudfront.net/topher/2016/December/584f6edd_data/data.zip"
           - Name: S3_BUCKET
             Value: !Ref S3Bucket
-      Name: !Sub ${ModelPrefix}-trainingdata
+      Name: training-data-upload
       ServiceRole: !Ref CodeBuildServiceRole
 
   Pipeline:
@@ -296,7 +338,7 @@ Resources:
       Stages:
         - Name: Source
           Actions:
-            - Name: App
+            - Name: CodeSource
               ActionTypeId:
                 Category: Source
                 Owner: ThirdParty
@@ -312,19 +354,32 @@ Resources:
               RunOrder: 1
         - Name: Build
           Actions:
-            - Name: Build
+            - Name: TrainBuild
               ActionTypeId:
                 Category: Build
                 Owner: AWS
                 Version: 1
                 Provider: CodeBuild
               Configuration:
-                ProjectName: !Ref ContainerBuildProject
+                ProjectName: !Ref TrainContainerBuildProject
               InputArtifacts:
                 - Name: Code
               OutputArtifacts:
-                - Name: BuildOutput
+                - Name: TrainBuildOutput
               RunOrder: 1
+            - Name: ServeBuild
+              ActionTypeId:
+                Catagory: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref ServeContainerBuildProject
+              InputArtifacts:
+                - Name: Code
+              OutputArtifacts:
+                - Name: ServeBuildOutput
+              RunOrder: 2
             - Name: DataUpload
               ActionTypeId:
                 Category: Build
@@ -336,82 +391,8 @@ Resources:
               InputArtifacts:
                 - Name: Code
               OutputArtifacts:
-                - Name: DiscoveryOutput
-              RunOrder: 2
-        - Name: QA
-          Actions:
-            - Name: Deploy
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Version: 1
-                Provider: CloudFormation
-              Configuration:
-                ChangeSetName: Deploy
-                ActionMode: CREATE_UPDATE
-                StackName: !Sub "${AWS::StackName}-ecs-cluster"
-                Capabilities: CAPABILITY_NAMED_IAM
-                TemplatePath: Template::templates/ecs-cluster.yaml
-                RoleArn: !GetAtt CloudFormationExecutionRole.Arn
-                ParameterOverrides: !Sub |
-                  {
-                      "Subnet1": "${Subnet1}",
-                      "Subnet2": "${Subnet2}",
-                      "VpcId": "${VpcId}",
-                      "VpcCIDR": "${VpcCIDR}",
-                      "Code1" : { "Fn::GetParam" : [ "DiscoveryOutput", "cf_inputs.json", "Code1" ] },
-                      "Code2" : { "Fn::GetParam" : [ "DiscoveryOutput", "cf_inputs.json", "Code2" ] },
-                      "Repository": "${Repository}",
-                      "GitHubRepo": "${GitHubRepo}",
-                      "TemplateBucket": "${TemplateBucket}"
-                  }
-              InputArtifacts:
-                - Name: Template
-                - Name: DiscoveryOutput
-              RunOrder: 1
-        - Name: Manual-Approval
-          Actions:
-            - Name: Approval
-              ActionTypeId:
-                Category: Approval
-                Owner: AWS
-                Version: 1
-                Provider: Manual
-              Configuration:
-                NotificationArn: !Ref SNSTopic
-                CustomData: "Approve or Reject the code changes after running QA Tests"
-                ExternalEntityLink: !Sub https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/
-              RunOrder: 1
-        - Name: Production
-          Actions:
-            - Name: Deploy
-              ActionTypeId:
-                Category: Invoke
-                Owner: AWS
-                Version: 1
-                Provider: Lambda
-              Configuration:
-                FunctionName: !Ref FlipLambda
-                UserParameters: !Sub |
-                  {
-                    "ElbName": "${GitHubRepo}"
-                  }
-              RunOrder: 1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                - Name: DataUploadOutput
+              RunOrder: 3
 
   ExecuteStateMachineRole:
     Type: "AWS::IAM::Role"
@@ -787,4 +768,3 @@ Outputs:
   S3BucketName:
     Description: S3 bucket that will hold training data and model artifacts
     Value: !Ref BucketName
-
