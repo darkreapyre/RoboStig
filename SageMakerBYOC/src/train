@@ -32,8 +32,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.image as mpimg
 
-from keras_tqdm import TQDMCallback
-
 from environment import create_trainer_environment
 
 # Global parameters
@@ -297,8 +295,8 @@ def train():
             False
         ),
         nb_val_samples=len(X_valid),
-        callbacks=[checkpoint, TQDMCallback()],
-        verbose=0
+        callbacks=[checkpoint],
+        verbose=1
     )
 
     # Save the model

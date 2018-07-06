@@ -45,8 +45,7 @@ RUN pip --no-cache-dir install \
         scikit-image \
         opencv-python==3.4.0.12 \
         matplotlib \
-        pillow \
-        keras-tqdm
+        pillow
 
 RUN pip --no-cache-dir install --upgrade\
     tensorflow-gpu
