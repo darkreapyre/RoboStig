@@ -13,10 +13,19 @@
 FROM ubuntu:16.04
 
 RUN apt-get -y update && apt-get install -y --no-install-recommends \
-         wget \
-         python \
-         nginx \
-         ca-certificates \
+    build-essential \
+    git \
+    bzip2 \
+    libopencv-dev \
+    libopenblas-dev \
+    libjemalloc-dev \
+    libgfortran3 \
+    libgtk2.0-dev \
+    python \
+    wget \
+    curl \
+    nginx \
+    ca-certificates
     && rm -rf /var/lib/apt/lists/*
 
 # Install all of the packages
