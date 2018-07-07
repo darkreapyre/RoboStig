@@ -285,6 +285,10 @@ def train():
             mode='auto'
         )
 
+        # GPU Configuration
+        if gpu_count > 1:
+            model = multi_gpu_model(model, gpus=gpu_count)
+
         # Compile model
         model.compile(loss='mean_squared_error', optimizer=Adam(lr=learning_rate))
             
