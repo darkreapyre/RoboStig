@@ -8,6 +8,7 @@ RUN mkdir /root/.keras
 COPY keras.json /root/.keras/
 
 RUN python3 -m pip install --upgrade pip
+
 RUN pip3 install mxnet-cu90 --upgrade --pre && \
     pip3 install keras-mxnet --upgrade --pre && \
     pip3 --no-cache-dir install \

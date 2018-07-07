@@ -7,8 +7,9 @@ RUN apt-get update && \
 RUN mkdir /root/.keras
 COPY keras.json /root/.keras/
 
-RUN pip3 install --upgrade pip && \
-    pip3 install mxnet --upgrade --pre && \
+RUN python3 -m pip install --upgrade pip
+
+RUN pip3 install mxnet --upgrade --pre && \
     pip3 install keras-mxnet --upgrade --pre && \
     pip3 --no-cache-dir install \
         h5py \
