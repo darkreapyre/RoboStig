@@ -301,7 +301,7 @@ def train():
                 batch_size,
                 True
             ),
-            steps_per_epoch=len(X_train)/2,#20000,
+            steps_per_epoch=2000,
             epochs=epochs,
     #        max_queue_size=1,
             validation_data=batch_generator(
