@@ -1,62 +1,35 @@
-# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License"). You
-# may not use this file except in compliance with the License. A copy of
-# the License is located at
-#
-#     http://aws.amazon.com/apache2.0/
-#
-# or in the "license" file accompanying this file. This file is
-# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
-# ANY KIND, either express or implied. See the License for the specific
-# language governing permissions and limitations under the License.
 FROM ubuntu:16.04
 
-RUN apt-get -y update && apt-get install -y --no-install-recommends \
-    build-essential \
-    git \
-    bzip2 \
-    libopencv-dev \
-    libopenblas-dev \
-    libjemalloc-dev \
-    libgfortran3 \
-    libgtk2.0-dev \
-    python-dev \
-    wget \
-    curl \
-    nginx \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install all of the packages
-RUN wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py
-RUN pip install \
-    numpy \
-    h5py \
-    scipy \
-    scikit-learn \ 
-    scikit-image \
-    pandas \
-    flask \
-    gevent \
-    gunicorn \
-    tensorflow\
-    keras \
-    opencv-python==3.4.0.12 \
-    matplotlib \
-    pillow
+RUN apt-get update && \
+    apt-get -y install build-essential libopencv-dev libopenblas-dev libjemalloc-dev libgfortran3 \
+    python-dev python3-dev python3-pip wget curl
 
 RUN mkdir /root/.keras
 COPY keras.json /root/.keras/
 
-RUN (cd /usr/local/lib/python2.7/dist-packages/scipy/.libs; rm *; ln ../../numpy/.libs/* .)
+RUN pip3 install mxnet --upgrade --pre && \
+    pip3 install keras-mxnet --upgrade --pre && \
+    pip3 --no-cache-dir install \
+        h5py \
+        pandas \
+        scipy \
+        keras \
+        flask \
+        gevent \
+        gunicorn \
+        scikit-learn \
+        scikit-image \
+        opencv-python==3.4.0.12 \
+        matplotlib \
+        pillow
+
+RUN rm -rf /var/lib/apt/lists/*
 RUN rm -rf /root/.cache
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
-
-# Env Variables
-ENV PYTHONUNBUFFERED=TRUE
-ENV PYTHONDONTWRITEBYTECODE=TRUE
 ENV PATH="/opt/program:${PATH}"
 
 # Set up the program in the image
