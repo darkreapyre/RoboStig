@@ -1,0 +1,128 @@
+#!/usr/bin/env python
+
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You
+# may not use this file except in compliance with the License. A copy of
+# the License is located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+# ANY KIND, either express or implied. See the License for the specific
+# language governing permissions and limitations under the License.
+
+# Applied from https://github.com/awslabs/amazon-sagemaker-examples/tree/master/hyperparameter_tuning/keras_bring_your_own
+from __future__ import absolute_import
+from __future__ import print_function
+
+# Import libraries necessary for this project.
+import os
+import numpy as np
+import keras
+import matplotlib.pyplot as plt
+import csv
+import cv2
+import h5py
+from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
+from keras.models import *
+from keras.layers import *
+from environment import create_trainer_environment
+
+# Configure the trainer environemnt for SageMaker training
+env = create_trainer_environment()
+print('creating SageMaker trainer environment:\n%s' % str(env))
+
+# local variables
+img_rows = 16
+img_cols = 32
+data_folder = os.path.join(env.channel_dirs['train'], 'data')
+
+# Get hyperparameters
+batch_size = env.hyperparameters.get('batch_size', default=128, object_type=int)
+learning_rate = env.hyperparameters.get('learning_rate', default=.001, object_type=float)
+nb_epochs = env.hyperparameters.get('epochs', default=10, object_type=int)
+
+def image_preprocessing(img):
+    resized = cv2.resize((cv2.cvtColor(img, cv2.COLOR_RGB2HSV))[:,:,1],(img_cols,img_rows))
+    return resized
+
+def load_data(X,y,data_folder,delta=0.08):
+    log_path = data_folder + 'driving_log.csv'
+	logs = []
+	
+	# load logs
+	with open(log_path,'rt') as f:
+        reader = csv.reader(f)
+        for line in reader:
+            logs.append(line)
+        log_labels = logs.pop(0)
+	
+	# load center camera image
+	for i in range(len(logs)):
+        img_path = logs[i][0]
+		img_path = data_folder+'IMG'+(img_path.split('IMG')[1]).strip()
+		img = plt.imread(img_path)
+		X.append(image_preprocessing(img))
+		y.append(float(logs[i][3]))
+
+	# load left camera image
+	for i in range(len(logs)):
+		img_path = logs[i][1]
+		img_path = data_folder+'IMG'+(img_path.split('IMG')[1]).strip()
+		img = plt.imread(img_path)
+		X.append(image_preprocessing(img))
+		y.append(float(logs[i][3]) + delta)
+
+	# load right camera image
+	for i in range(len(logs)):
+		img_path = logs[i][2]
+		img_path = data_folder+'IMG'+(img_path.split('IMG')[1]).strip()
+		img = plt.imread(img_path)
+		X.append(image_preprocessing(img))
+		y.append(float(logs[i][3]) - delta)
+
+# Training function
+def train():
+	data={}
+	data['features'] = []
+	data['labels'] = []
+
+	load_data(data['features'], data['labels'],data_folder,0.3)
+
+	X_train = np.array(data['features']).astype('float32')
+	y_train = np.array(data['labels']).astype('float32')
+
+	# horizonal reflection to agument the data
+	X_train = np.append(X_train,X_train[:,:,::-1],axis=0)
+	y_train = np.append(y_train,-y_train,axis=0)
+
+	# split train and validation
+	X_train, y_train = shuffle(X_train, y_train)
+	X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, random_state=0, test_size=0.1)
+
+	# reshape to have correct dimension
+	X_train = X_train.reshape(X_train.shape[0], img_rows, img_cols, 1)
+	X_val = X_val.reshape(X_val.shape[0], img_rows, img_cols, 1)
+    
+    print("Model Summary ...")
+    model = Sequential()
+    model.add(Lambda(lambda x: x/127.5 - 1.,input_shape=(img_rows,img_cols,1)))
+    model.add(Conv2D(16, 8, 8, border_mode='valid', activation='relu'))
+    model.add(Conv2D(32, 5, 5, border_mode='valid', activation='relu'))
+    model.add(Conv2D(64, 5, 5, border_mode='valid', activation='relu'))
+    model.add(Flatten())
+    model.add(Dropout(.2))
+    model.add(Dense(512, activation='relu'))
+    model.add(Dropout(.5))
+    model.add(Dense(1))
+	model.summary()
+    model.compile(loss='mean_squared_error', optimizer='adam')
+    model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, validation_data=(X_val, y_val))
+    model.save(os.path.join(env.model_dir, 'model.h5'))
+
+if __name__ == '__main__':
+    train()
+    sys.exit(0)
