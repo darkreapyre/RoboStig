@@ -252,7 +252,7 @@ def train():
         print("Hyper parameters: {}".format(hyperParams))
 
         # Process hyperParams
-        le = float(hyperParams.get('lr', '0.001'))
+        learning_rate = float(hyperParams.get('learning_rate', '0.001'))
         batch_size = int(hyperParams.get('batch_size', '64'))
         epochs = int(hyperParams.get('epochs', '12'))
         gpu_count = int(hyperParams.get('gpu_count', '0'))
