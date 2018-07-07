@@ -38,7 +38,6 @@ HYPERPARAMETERS_FILE = "hyperparameters.json"
 RESOURCE_CONFIG_FILE = "resourceconfig.json"
 INPUT_DATA_CONFIG_FILE = "inputdataconfig.json"
 
-
 def load_config(path):
     with open(path, 'r') as f:
         return yaml.load(f)
