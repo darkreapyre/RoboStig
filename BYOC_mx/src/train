@@ -262,6 +262,7 @@ def train():
         
         # Local variables
         data_dir = os.path.join(inputParams['train'], 'data')
+        model_dir = os.path.join(model_path, '/')
         test_size = 0.1
         
         # Load the data
@@ -272,7 +273,7 @@ def train():
             
         # Save model Checpoint
         checkpoint = ModelCheckpoint(
-            os.path.join(env.model_dir, 'model-{epoch:03d}.h5'),
+            os.path.join(model_dir, 'model-{epoch:03d}.h5'),
             verbose=0,
             save_best_only=1,
             mode='auto'
@@ -306,7 +307,7 @@ def train():
         )
 
         # Save the model
-        save(model, env.model_dir)
+        save(model, model_dir)
 
         sys.exit(0)
     
