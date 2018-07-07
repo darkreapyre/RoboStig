@@ -29,11 +29,11 @@ data_path   = os.path.join(prefix, 'input/config/inputdataconfig.json')
 
 # Global parameters
 IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 66, 200, 3
-#if K.image_data_format == 'channels_first':
-#    IMAGE_SHAPE = (IMAGE_CHANNELS, IMAGE_HEIGHT, IMAGE_WIDTH)
-#else:
-#    IMAGE_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
-IMAGE_SHAPE = (IMAGE_CHANNELS, IMAGE_HEIGHT, IMAGE_WIDTH)
+if K.image_data_format() == 'channels_first':
+    IMAGE_SHAPE = (IMAGE_CHANNELS, IMAGE_HEIGHT, IMAGE_WIDTH)
+else:
+    IMAGE_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
+#IMAGE_SHAPE = (IMAGE_CHANNELS, IMAGE_HEIGHT, IMAGE_WIDTH)
 MODEL_NAME = 'model.h5'
 
 # Helper functions for Image Augmentation
@@ -68,9 +68,9 @@ def preprocess(image):
     image = crop(image)
     image = resize(image)
     image = rgb2yuv(image)
-#    if K.image_data_format() == 'channels_first':
-#        image = image.reshape(image.shape[2], image.shape[0], image.shape[1])
-    image = image.reshape(image.shape[2], image.shape[0], image.shape[1])
+    if K.image_data_format() == 'channels_first':
+        image = image.reshape(image.shape[2], image.shape[0], image.shape[1])
+#    image = image.reshape(image.shape[2], image.shape[0], image.shape[1])
     return image
 
 def choose_image(data_dir, center, left, right, steering_angle):
@@ -163,12 +163,12 @@ def batch_generator(data_dir, image_paths, steering_angles, batch_size, is_train
     """
     Generate training image give image paths and associated steering angles
     """
-#    if K.image_data_format == 'channels_first':
-#        images = np.empty([batch_size, IMAGE_CHANNELS, IMAGE_HEIGHT, IMAGE_WIDTH])
-#    else:
-#        images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
+    if K.image_data_format() == 'channels_first':
+        images = np.empty([batch_size, IMAGE_CHANNELS, IMAGE_HEIGHT, IMAGE_WIDTH])
+    else:
+        images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
     steers = np.empty(batch_size)
-    images = np.empty([batch_size, IMAGE_CHANNELS, IMAGE_HEIGHT, IMAGE_WIDTH])
+#    images = np.empty([batch_size, IMAGE_CHANNELS, IMAGE_HEIGHT, IMAGE_WIDTH])
 
     while True:
         i = 0
