@@ -24,6 +24,7 @@ import keras
 import matplotlib.pyplot as plt
 import csv
 import cv2
+import h5py
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 from keras.models import *
@@ -45,27 +46,23 @@ learning_rate = env.hyperparameters.get('learning_rate', default=.001, object_ty
 nb_epochs = env.hyperparameters.get('epochs', default=10, object_type=int)
 
 def image_preprocessing(img):
-	"""preproccesing training data to keep only S channel in HSV color space, and resize to 16X32"""
-
-	resized = cv2.resize((cv2.cvtColor(img, cv2.COLOR_RGB2HSV))[:,:,1],(img_cols,img_rows))
-	return resized
+    resized = cv2.resize((cv2.cvtColor(img, cv2.COLOR_RGB2HSV))[:,:,1],(img_cols,img_rows))
+    return resized
 
 def load_data(X,y,data_folder,delta=0.08):
-	"""function to load training data"""
-
-	log_path = data_folder + 'driving_log.csv'
+    log_path = data_folder + 'driving_log.csv'
 	logs = []
 	
 	# load logs
 	with open(log_path,'rt') as f:
-		reader = csv.reader(f)
-		for line in reader:
-			logs.append(line)
-		log_labels = logs.pop(0)
+        reader = csv.reader(f)
+        for line in reader:
+            logs.append(line)
+        log_labels = logs.pop(0)
 	
 	# load center camera image
 	for i in range(len(logs)):
-		img_path = logs[i][0]
+        img_path = logs[i][0]
 		img_path = data_folder+'IMG'+(img_path.split('IMG')[1]).strip()
 		img = plt.imread(img_path)
 		X.append(image_preprocessing(img))
@@ -109,27 +106,21 @@ def train():
 	# reshape to have correct dimension
 	X_train = X_train.reshape(X_train.shape[0], img_rows, img_cols, 1)
 	X_val = X_val.reshape(X_val.shape[0], img_rows, img_cols, 1)
-
-	print("Model Summary ...")
-
-	model = Sequential([
-			Lambda(lambda x: x/127.5 - 1.,input_shape=(img_rows,img_cols,1)),
-			Conv2D(16, 8, 8, border_mode='valid', activation='relu'),
-            Conv2D(32, 5, 5, border_mode='valid', activation='relu'),
-            Conv2D(64, 5, 5, border_mode='valid', activation='relu'),
-            Flatten(),
-			Dropout(.2),
-            Dense(512, activation='relu'),
-            Dropout(.5),
-			Dense(1)
-		])
-
-	model.summary()
-
-	model.compile(loss='mean_squared_error',optimizer='adam')
-	history = model.fit(X_train, y_train,batch_size=batch_size, nb_epoch=nb_epoch,verbose=1, validation_data=(X_val, y_val))  
     
-    # Save the generated model and weights.
+    print("Model Summary ...")
+    model = Sequential()
+    model.add(Lambda(lambda x: x/127.5 - 1.,input_shape=(img_rows,img_cols,1)))
+    model.add(Conv2D(16, 8, 8, border_mode='valid', activation='relu'))
+    model.add(Conv2D(32, 5, 5, border_mode='valid', activation='relu'))
+    model.add(Conv2D(64, 5, 5, border_mode='valid', activation='relu'))
+    model.add(Flatten())
+    model.add(Dropout(.2))
+    model.add(Dense(512, activation='relu'))
+    model.add(Dropout(.5))
+    model.add(Dense(1))
+	model.summary()
+    model.compile(loss='mean_squared_error', optimizer='adam')
+    model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, validation_data=(X_val, y_val))
     model.save(os.path.join(env.model_dir, 'model.h5'))
 
 if __name__ == '__main__':
