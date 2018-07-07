@@ -162,9 +162,9 @@ def batch_generator(data_dir, image_paths, steering_angles, batch_size, is_train
     Generate training image give image paths and associated steering angles
     """
     if K.image_data_format == 'channels_first':
-        images = np.empty([batch_size, IMAGE_CHANNELS, IMAGE_HEIGHT, IMAGE_WIDTH]
+        images = np.empty([batch_size, IMAGE_CHANNELS, IMAGE_HEIGHT, IMAGE_WIDTH])
     else:
-        images = np.empty(batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
+        images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
     steers = np.empty(batch_size)
 
     while True:
