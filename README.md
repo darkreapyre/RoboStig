@@ -6,8 +6,10 @@
 This role will be used by SageMaker to assume access to the training and hosting instances as well as ECR and S3.
 - Create IAM Role called `SageMaker-WS-Role`.
 - Apply the following policy:
+```json
     {
     }
+```
 - Make note of the role name as it will be used in the CloudFormation template and the next step.
 
 ## Step 2: Workshop default IAM User.
