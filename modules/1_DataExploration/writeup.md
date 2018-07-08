@@ -25,7 +25,8 @@ __Exercise:__ For your first exercise, you will need to implement the following 
         <strong>Hint: </strong>The `cv2.cvtColor()` function from the OpenCV library may be helpful.
     </div>
 
-<<<CODE CELL>>>
+<CODE CELL>
+
 # Image Transformation: Crop
 def crop(image):
     """
@@ -43,6 +44,36 @@ def crop(image):
     ###   END  OF YOUR CODE   ###
 
     return image
+
+</CODE CELL>
+
+<MARKDOWN CELL>
+
+<details><summary><b>Solution (Click to expand)</b></summary><p>
+
+```
+# Image Transformation: Crop
+def crop(image):
+    """
+    Crops the image by emoving the sky at the top and the car front at the bottom.
+
+    Arguments:
+    image -- numpy.array representing an RGB image of format (Height, Width, Channel).
+   
+    Returns:
+    Cropped image.
+    """
+    image = image[60:-25, :, :]
+
+    return image
+```
+
+</p>
+</details>
+
+</MARKDOWN CELL>
+
+<CODE CELL>
 
 # Image Transformation: Resize
 def resize(image, height, width):
@@ -62,6 +93,38 @@ def resize(image, height, width):
 
     return image
 
+</CODE CELL>
+
+<MARKDOWN CELL>
+
+<details><summary><b>Solution (Click expand)</b></summary><p>
+
+```
+# Image Transformation: Resize
+def resize(image, height, width):
+    """
+    Resize the image to the input shape for the NVIDIA model.
+
+    Arguments:
+    image -- numpy array representing image.
+    height -- desired image height.
+    width -- desired image width.
+
+    Returns:
+    Resized image.
+    """
+    image = cv2.resize(image, (IMAGE_WIDTH, IMAGE_HEIGHT), cv2.INTER_AREA)
+
+    return image
+```
+
+</p>
+</details>
+
+</MARKDOWN CELL>
+
+<CODE CELL>
+
 # Image Transformation: Convert from RGB to YUV
 def rgb2yuv(image):
     """
@@ -80,45 +143,13 @@ def rgb2yuv(image):
 
     return image
 
-<<</CODE CELL>>>
+</CODE CELL>
 
-<<<MARKDOWN CELL>>>
+<MARKDOWN CELL>
 
-<details><summary><b>Solution (Click to Expand)</b></summary><p>
+<details><summary><b>Solution (Click to expand)</b></summary><p>
 
 ```
-# Image Transformation: Crop
-def crop(image):
-    """
-    Crops the image by emoving the sky at the top and the car front at the bottom.
-
-    Arguments:
-    image -- numpy.array representing an RGB image of format (Height, Width, Channel).
-   
-    Returns:
-    Cropped image.
-    """
-    image = image[60:-25, :, :]
-    
-    return image
-
-# Image Transformation: Resize
-def crop(image, height, width):
-    """
-    Resize the image to the input shape for the NVIDIA model.
-
-    Arguments:
-    image -- numpy array representing image.
-    height -- desired image height.
-    width -- desired image width.
-
-    Returns:
-    Resized image.
-    """
-    image = cv2.resize(image, (IMAGE_WIDTH, IMAGE_HEIGHT), cv2.INTER_AREA)
-
-    return image
-
 # Image Transformation: Convert from RGB to YUV
 def rgb2yuv(image):
     """
@@ -138,7 +169,7 @@ def rgb2yuv(image):
 </p>
 </details>
 
-<<</MARKDOWN CELL>>>
+</MARKDOWN CELL>
 
 ---
 
