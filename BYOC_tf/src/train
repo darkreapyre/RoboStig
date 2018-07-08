@@ -44,7 +44,7 @@ env = create_trainer_environment()
 print('creating SageMaker trainer environment:\n%s' % str(env))
 
 # Get hyperparameters
-batch_size = env.hyperparameters.get('batch_size', object_type=int)
+batch_size = env.hyperparameters.get('batch_size', default=16, object_type=int)
 learning_rate = env.hyperparameters.get('learning_rate', default=.001, object_type=float)
 EPOCHS = env.hyperparameters.get('epochs', default=10, object_type=int)
 
@@ -284,7 +284,7 @@ def train():
             batch_size,
             True
         ),
-        steps_per_epoch=len(X_train),#20000,
+        steps_per_epoch=len(X_train)//batch_size
         epochs=EPOCHS,
 #        max_queue_size=1,
         validation_data=batch_generator(
@@ -294,7 +294,7 @@ def train():
             batch_size,
             False
         ),
-        validation_steps=len(X_valid),
+        validation_steps=len(X_valid)//batch_size,
         callbacks=[checkpoint],
         verbose=1
     )
