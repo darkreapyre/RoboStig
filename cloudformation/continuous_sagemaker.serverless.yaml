@@ -7,14 +7,14 @@ Parameters:
     Description: GitHub username.
   GitHubRepo:
     Type: String
-    Default: itsacat
-    Description: The repo name of the Prediction API.
+    Default: RoboStig
+    Description: The repository name of the Behavioral Clonning Workshop.
     AllowedPattern: "[A-Za-z0-9_.-]*"
     MaxLength: 50
   GitHubBranch:
     Type: String
-    Default: Demo-1
-    Description: The branch of the repo to continuously deploy.
+    Default: setup
+    Description: The branch of the repository to deploy.
   GitHubToken:
     Type: String
     Description: >
