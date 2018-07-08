@@ -147,7 +147,7 @@ def random_brightness(image):
     hsv[:,:,2] =  hsv[:,:,2] * ratio
     return cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
 
-def augument(data_dir, center, left, right, steering_angle, range_x=100, range_y=10):
+def augment(data_dir, center, left, right, steering_angle, range_x=100, range_y=10):
     """
     Generate an augumented image and adjust steering angle.
     (The steering angle is associated with the center image)
@@ -177,7 +177,7 @@ def batch_generator(data_dir, image_paths, steering_angles, batch_size, is_train
             steering_angle = steering_angles[index]
             # argumentation
             if is_training and np.random.rand() < 1.:
-                image, steering_angle = augument(data_dir, center, left, right, steering_angle)
+                image, steering_angle = augment(data_dir, center, left, right, steering_angle)
             else:
                 image = load_image(data_dir, center) 
             # add the image and steering angle to the batch
