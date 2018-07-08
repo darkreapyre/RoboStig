@@ -226,25 +226,6 @@ def build_model(input_shape):
     model.summary()
     return model
 
-def save(model, model_dir):
-    print("Saving the trained model ...")
-    files = list(glob.glob(os.path.join(model_dir, '*.h5')))
-    
-    # Find the best model weights
-    best = max(files)
-    
-    # Rename the best weights
-    #os.rename(best, MODEL_NAME)
-    shutil.copy(best, os.path.join(model_dir, MODEL_NAME))
-    
-    # Move to model_dir
-    #shutil.copy('./model.h5', model_dir+'/')
-    
-#    # Save model graph to `.json`
-#    model_json = model.to_json()
-#    with open(model_dir+'/model.json', 'w') as outfile:
-#        json.dump(model_json, outfile)
-
 # Training function
 def train():
     print("Starting model training ...")
@@ -256,7 +237,7 @@ def train():
 
         # Process hyperParams
         learning_rate = float(hyperParams.get('learning_rate', '0.001'))
-        batch_size = int(hyperParams.get('batch_size', '64'))
+        batch_size = int(hyperParams.get('batch_size', '16'))
         epochs = int(hyperParams.get('epochs', '12'))
         gpu_count = int(hyperParams.get('gpu_count', '0'))
 
@@ -302,7 +283,7 @@ def train():
                 batch_size,
                 True
             ),
-            steps_per_epoch=len(X_train)/batch_size,
+            steps_per_epoch=len(X_train)//batch_size,
             epochs=epochs,
     #        max_queue_size=1,
             validation_data=batch_generator(
@@ -312,13 +293,15 @@ def train():
                 batch_size,
                 False
             ),
-            validation_steps=len(X_valid),
+            validation_steps=len(X_valid)//batch_size,
             callbacks=[checkpoint],
             verbose=1
         )
 
-        # Save the model
-        save(model, model_dir)
+        # Save keras model
+        files = list(glob.glob(model_path+'/*.hd5'))
+        best_model = max(files)
+        shutil.copy(best_model, model_path+'/'+MODEL_NAME)
 
         sys.exit(0)
     
@@ -328,8 +311,10 @@ def train():
         trc = traceback.format_exc()
         with open(os.path.join(output_path, 'failure'), 'w') as s:
             s.write('Exception during training: ' + str(e) + '\n' + trc)
+
         # Printing this causes the exception to be in the training job logs, as well.
         print('Exception during training: ' + str(e) + '\n' + trc, file=sys.stderr)
+
         # A non-zero exit code causes the training job to be marked as Failed.
         sys.exit(255)
 
