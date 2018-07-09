@@ -303,29 +303,6 @@ def train():
         best_model = max(files)
         shutil.copy(best_model, os.path.join(model_path, MODEL_NAME))
 
-"""
-# from MX
-prefix      = '/opt/ml/'
-model_path  = os.path.join(prefix, 'model')
-
-
-# from TF
-MODEL_PATH = "/opt/ml/model"
-model_dir=MODEL_PATH
-
-
-def save(model, model_dir):
-    print("Saving the trained model ...")
-    files = list(glob.glob(os.path.join(model_dir, '*.h5')))
-    
-    # Find the best model weights
-    best = max(files)
-    
-    # Rename the best weights
-    #os.rename(best, MODEL_NAME)
-    shutil.copy(best, os.path.join(model_dir, MODEL_NAME))
-"""
-
         sys.exit(0)
     
     except Exception as e:
