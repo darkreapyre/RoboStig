@@ -249,7 +249,7 @@ def train():
         # Local variables
         channel_dirs = os.path.join(input_path, 'train')
         data_dir = os.path.join(channel_dirs, 'data')
-        model_dir = os.path.join(model_path, '/')
+        model_dir = "/opt/ml/model"
         test_size = 0.1
         
         # Load the data
@@ -299,9 +299,9 @@ def train():
         )
 
         # Save keras model
-        files = list(glob.glob(os.path.join(model_path, '*.h5')))
+        files = list(glob.glob(os.path.join(model_dir, '*.h5')))
         best_model = max(files)
-        shutil.copy(best_model, os.path.join(model_path, MODEL_NAME))
+        shutil.copy(best_model, os.path.join(model_dir, MODEL_NAME))
 
         sys.exit(0)
     
