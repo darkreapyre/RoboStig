@@ -299,6 +299,7 @@ def train():
         )
 
         # Save keras model
+        print("Saving model ...")
         files = list(glob.glob(os.path.join(model_dir, '*.h5')))
         best_model = max(files)
         shutil.copy(best_model, os.path.join(model_dir, MODEL_NAME))
