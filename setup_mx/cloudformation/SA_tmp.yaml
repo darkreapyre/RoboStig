@@ -1,0 +1,1163 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SmartAssistant automated setup - re:invent Bootcamp 2017'
+Parameters:
+
+  S3CacheBucketPathParam:
+    Description: "The path in the new S3 bucket to use as cache"
+    Type: String
+    Default: "cache"
+
+  ReadCapacityUnits:
+    Description: "Throughtput for DDB tables"
+    Type: Number
+    Default: 5
+
+  WriteCapacityUnits:
+    Description: "Throughtput for DDB tables"
+    Type: Number
+    Default: 5
+
+  AdministratorEmail:
+    Description: "Email address to send Smart Assistant Device sign-up verification email to"
+    Type: String
+    ConstraintDescription: "You must provide a valid email address"
+    Default: sayersr@amazon.com
+
+  OpenWeatherCountryCode:
+    Description: "The country code (two characters) for Open Weather API calls"
+    Type: String
+    Default: AU
+
+  OpenWeatherUnits:
+    Description: "Metric or Imperial"
+    Type: String
+    Default: 'imperial'
+    AllowedValues:
+      - 'metric'
+      - 'imperial'
+
+  DeviceUID:
+    Description: "The auto-provisioned Smart Assistant device username"
+    Type: String
+    Default: "smartassistant"
+
+  DevicePWD:
+    Description: "The auto-provisioned Smart Assistant password"
+    Type: String
+    Default: "password"
+
+  DeleteLexResources:
+    Type: String
+    Default: 'TRUE'
+    AllowedValues:
+      - 'TRUE'
+      - 'FALSE'
+    Description: 'WARNING:: !! THIS WILL DELETE **ALL** THE LEX RESOURCES IN YOUR
+      ACCOUNT !!!'
+
+  DeleteRekognitionResources:
+    Type: String
+    Default: 'TRUE'
+    AllowedValues:
+      - 'TRUE'
+      - 'FALSE'
+    Description: 'WARNING:: !! THIS WILL DELETE **ALL** THE REKOGNITION RESOURCES
+      IN YOUR ACCOUNT !!!'
+
+Resources:
+
+  ScrubCustomResourceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaLogToCloudWatch
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+        - PolicyName: Destruction
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lex:*
+                  - rekognition:*
+                Resource: '*'
+  ScrubCustomResourceLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: scrub.lambda_handler
+      MemorySize: '512'
+      Timeout: '300'
+      Role: !GetAtt 'ScrubCustomResourceRole.Arn'
+      Code:
+        S3Bucket: !Join ['', [!Ref 'AWS::Region', -tcprod]]
+        S3Key: courses/SharedLambda/scrub.zip
+      Runtime: python2.7
+  ScrubCustomResource:
+    Type: Custom::ScrubCustomResource
+    Properties:
+      DeleteLexResources: !Ref 'DeleteLexResources'
+      DeleteRekognitionResources: !Ref 'DeleteRekognitionResources'
+      DeleteOnCreate: 'TRUE'
+      DeleteOnDelete: 'TRUE'
+      ServiceToken: !GetAtt 'ScrubCustomResourceLambda.Arn'
+
+  CognitoUserPool:
+    Type: "AWS::Cognito::UserPool"
+    Properties:
+      UserPoolName: !Sub ${AWS::StackName}-Bootcamp2017
+      Policies:
+          PasswordPolicy:
+            MinimumLength: 6
+            RequireLowercase: false
+            RequireNumbers: false
+            RequireSymbols: false
+            RequireUppercase: false
+
+      AutoVerifiedAttributes:
+        -
+          email
+      MfaConfiguration: "OFF"
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+        UnusedAccountValidityDays: 7
+
+      Schema:
+        -
+          Name: "sub"
+          AttributeDataType: "String"
+          DeveloperOnlyAttribute: false
+          Mutable: false
+          Required: true
+          StringAttributeConstraints:
+            MinLength: 1
+            MaxLength: 2048
+        -
+          Name: "name"
+          AttributeDataType: "String"
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: true
+          StringAttributeConstraints:
+            MinLength: 0
+            MaxLength: 2048
+        -
+          Name: "given_name"
+          AttributeDataType: "String"
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: 0
+            MaxLength: 2048
+        -
+          Name: "family_name"
+          AttributeDataType: "String"
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: 0
+            MaxLength: 2048
+        -
+          Name: "auth_permission"
+          AttributeDataType: "String"
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: 1
+            MaxLength: 2048
+
+  CognitoUserPoolClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+        ClientName: bootcamp2017
+        GenerateSecret: false
+        UserPoolId: !Ref CognitoUserPool
+
+  RESTAPI:
+    Type: "AWS::ApiGateway::RestApi"
+    Properties:
+      Body:
+        swagger: "2.0"
+        info:
+          version: "2017-01-30T07:02:33Z"
+          title: "Smart Assistant - Bootcamp 2017"
+        basePath: "/dev"
+        schemes:
+        - "https"
+        paths:
+
+          /smartassistant:
+            options:
+              consumes:
+              - "application/json"
+              produces:
+              - "application/json"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/Empty"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+                    Access-Control-Allow-Methods:
+                      type: "string"
+                    Access-Control-Allow-Headers:
+                      type: "string"
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                passthroughBehavior: "when_no_match"
+                type: "mock"
+
+          /smartassistant/createprofile:
+            post:
+              consumes:
+              - "application/json"
+              produces:
+              - "application/json"
+              parameters:
+              - in: "body"
+                name: "SmartAssistantProfileRequest"
+                required: true
+                schema:
+                  $ref: "#/definitions/SmartAssistantProfileRequest"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/SmartAssistantProfileResponse"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+              security:
+              - CUPAuthorizer: []
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_templates"
+                httpMethod: "POST"
+                requestTemplates:
+                  application/json: "{\n    \"payload\" : $input.body,\n    \"correlationId\"\
+                    \ : \"$context.requestId\"\n}"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${!stageVariables.Bootcamp2017_RESTSmartAssistantProfile}/invocations"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws"
+            options:
+              consumes:
+              - "application/json"
+              produces:
+              - "application/json"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/Empty"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+                    Access-Control-Allow-Methods:
+                      type: "string"
+                    Access-Control-Allow-Headers:
+                      type: "string"
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_match"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                type: "mock"
+
+          /smartassistant/processlexdialog:
+            post:
+              consumes:
+              - "application/json"
+              produces:
+              - "application/json"
+              parameters:
+              - in: "body"
+                name: "SmartAssistantProcessLexDialogRequest"
+                required: true
+                schema:
+                  $ref: "#/definitions/SmartAssistantProcessLexDialogRequest"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/SmartAssistantProcessLexDialogResponse"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+              security:
+              - CUPAuthorizer: []
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_templates"
+                httpMethod: "POST"
+                requestTemplates:
+                  application/json: "{\n    \"payload\" : $input.body,\n    \"correlationId\"\
+                    \ : \"$context.requestId\"\n}"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${!stageVariables.Bootcamp2017_RESTSmartAssistantProcessLexDialog}/invocations"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws"
+            options:
+              consumes:
+              - "application/json"
+              produces:
+              - "application/json"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/Empty"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+                    Access-Control-Allow-Methods:
+                      type: "string"
+                    Access-Control-Allow-Headers:
+                      type: "string"
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_match"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                type: "mock"
+
+          /smartassistant/tools:
+            post:
+              consumes:
+              - "application/json"
+              produces:
+              - "application/json"
+              parameters:
+              - in: "body"
+                name: "SmartAssistantToolsRequest"
+                required: true
+                schema:
+                  $ref: "#/definitions/SmartAssistantToolsRequest"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/SmartAssistantToolsResponse"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+              security:
+              - CUPAuthorizer: []
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_templates"
+                httpMethod: "POST"
+                requestTemplates:
+                  application/json: "{\n    \"payload\" : $input.body,\n    \"correlationId\"\
+                    \ : \"$context.requestId\"\n}"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${!stageVariables.Bootcamp2017_RESTSmartAssistantTools}/invocations"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws"
+            options:
+              consumes:
+              - "application/json"
+              produces:
+              - "application/json"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/Empty"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+                    Access-Control-Allow-Methods:
+                      type: "string"
+                    Access-Control-Allow-Headers:
+                      type: "string"
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_match"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                type: "mock"
+
+          /smartassistant/recogniseface:
+            post:
+              consumes:
+              - "application/json"
+              produces:
+              - "application/json"
+              parameters:
+              - in: "body"
+                name: "SmartAssistantRecogniseRequest"
+                required: true
+                schema:
+                  $ref: "#/definitions/SmartAssistantRecogniseRequest"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/SmartAssistantRecogniseResponse"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+              security:
+              - CUPAuthorizer: []
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_templates"
+                httpMethod: "POST"
+                requestTemplates:
+                  application/json: "{\n    \"payload\" : $input.body,\n    \"correlationId\"\
+                    \ : \"$context.requestId\"\n}"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${!stageVariables.Bootcamp2017_RESTSmartAssistantRecogniseFace}/invocations"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws"
+            options:
+              consumes:
+              - "application/json"
+              produces:
+              - "application/json"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/Empty"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+                    Access-Control-Allow-Methods:
+                      type: "string"
+                    Access-Control-Allow-Headers:
+                      type: "string"
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_match"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                type: "mock"
+
+
+          /synthesisespeech:
+            post:
+              consumes:
+              - "application/json"
+              produces:
+              - "application/json"
+              parameters:
+              - in: "body"
+                name: "SynthesiseSpeechRequest"
+                required: true
+                schema:
+                  $ref: "#/definitions/SynthesiseSpeechRequest"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/SynthesiseSpeechResponse"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_templates"
+                httpMethod: "POST"
+                requestTemplates:
+                  application/json: "{\n    \"payload\" : $input.body,\n    \"correlationId\"\
+                    \ : \"$context.requestId\",\n    \"identityToken\" : \"$input.params('Authorization')\"\
+                    \n}"
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${!stageVariables.Bootcamp2017_RESTSynthesiseSpeech}/invocations"
+                contentHandling: "CONVERT_TO_TEXT"
+                type: "aws"
+            options:
+              consumes:
+              - "application/json"
+              produces:
+              - "application/json"
+              responses:
+                "200":
+                  description: "200 response"
+                  schema:
+                    $ref: "#/definitions/Empty"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      type: "string"
+                    Access-Control-Allow-Methods:
+                      type: "string"
+                    Access-Control-Allow-Headers:
+                      type: "string"
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_match"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                type: "mock"
+        securityDefinitions:
+          sigv4:
+            type: "apiKey"
+            name: "Authorization"
+            in: "header"
+            x-amazon-apigateway-authtype: "awsSigv4"
+          CUPAuthorizer:
+            type: "apiKey"
+            name: "Authorization"
+            in: "header"
+            x-amazon-apigateway-authtype: "cognito_user_pools"
+            x-amazon-apigateway-authorizer:
+              providerARNs:
+              - Fn::Sub: ${CognitoUserPool.Arn}
+              type: "cognito_user_pools"
+              identityValidationExpression: !Ref CognitoUserPoolClient
+        definitions:
+          Empty:
+            type: "object"
+            title: "Empty Schema"
+          SmartAssistantProcessLexDialogResponse:
+            type: "object"
+            properties:
+              message:
+                type: "string"
+              succeeded:
+                type: "boolean"
+            title: "SmartAssistantProcessLexDialogResponse"
+          SmartAssistantProcessLexDialogRequest:
+            type: "object"
+            properties:
+              userContextId:
+                type: "string"
+              dialogData:
+                type: "string"
+              interactionType:
+                type: "string"
+            title: "SmartAssistantProcessLexDialogRequest"
+          SynthesiseSpeechResponse:
+            type: "object"
+            properties:
+              message:
+                type: "string"
+              url:
+                type: "string"
+              succeeded:
+                type: "boolean"
+            title: "SynthesiseSpeechResponse"
+          SynthesiseSpeechRequest:
+            type: "object"
+            properties:
+              tts:
+                type: "string"
+              voiceId:
+                type: "string"
+            title: "SynthesiseSpeechRequest"
+          SmartAssistantRecogniseResponse:
+            type: "object"
+            properties:
+              message:
+                type: "string"
+              succeeded:
+                type: "boolean"
+            title: "SmartAssistantRecogniseResponse"
+          SmartAssistantRecogniseRequest:
+            type: "object"
+            properties:
+              image:
+                type: "string"
+            title: "SmartAssistantRecogniseRequest"
+          SmartAssistantProfileResponse:
+            type: "object"
+            properties:
+              message:
+                type: "string"
+              succeeded:
+                type: "boolean"
+            title: "SmartAssistantProfileResponse"
+          SmartAssistantProfileRequest:
+            type: "object"
+            properties:
+              image:
+                type: "string"
+            title: "SmartAssistantProfileRequest"
+          SmartAssistantToolsResponse:
+            type: "object"
+            properties:
+              message:
+                type: "string"
+              succeeded:
+                type: "boolean"
+            title: "SmartAssistantToolsResponse"
+          SmartAssistantToolsRequest:
+            type: "object"
+            properties:
+              image:
+                type: "string"
+            title: "SmartAssistantToolsRequest"
+
+      Description: 'API for Bootcamp2017'
+      FailOnWarnings: true
+      Name: !Sub '${AWS::StackName} - Bootcamp2017 API'
+
+  SetupEnvironmentPhase1:
+    DependsOn:
+      - ScrubCustomResource
+      - LambdaCustomResourceSetupEnvironmentPhase1
+      - S3WebHostingBucket
+      - DDBTableAudioStream
+    Type: 'Custom::SetupEnvironmentPhase1'
+    Properties:
+      ServiceToken: !GetAtt LambdaCustomResourceSetupEnvironmentPhase1.Arn
+      # These properties are custom to the Lambda function
+      Region: !Ref "AWS::Region"
+      StackName : !Ref "AWS::StackName"
+      AWSAccountId : !Ref "AWS::AccountId"
+      RESTAPIId : !Ref RESTAPI
+      smartAssistantRekognitionCollectionId: SmartAssistant-KnownFaces
+      SourceS3Bucket: !Sub awsu-bootcamps-${AWS::Region}
+      SourceS3BucketPath: Bootcamp2017
+      S3WebHostingBucket: !Ref S3WebHostingBucket
+      AdministratorEmail: !Ref AdministratorEmail
+      CognitoUserPoolClientId: !Ref CognitoUserPoolClient
+      CognitoUserPoolId: !Ref CognitoUserPool
+      AudioStreamDDBTable: !Ref DDBTableAudioStream
+      AudioStreamRole: !GetAtt IoTAudioStreamToDDB.Arn
+      AudioStreamTopic: !Sub ${AWS::StackName}/smartassistant/audiostream
+      RESTAPIEndpoint: !Sub https://${RESTAPI}.execute-api.${AWS::Region}.amazonaws.com/dev
+      DeviceUID: !Ref DeviceUID
+      DevicePWD: !Ref DevicePWD
+      OpenWeatherCountryCode: !Ref OpenWeatherCountryCode
+
+  Bootcamp2017IAMRoleLambdaCustomResource:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - 
+          PolicyName: LambdaLogToCloudWatch
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+        -
+          PolicyName: "CustomResource"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "rekognition:*"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action: "iot:*"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action: "iam:CreateServiceLinkedRole"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action: "iam:PassRole"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action: "lex:*"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action: "s3:*"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action: "cognito-idp:*"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action: "dynamodb:*"
+                Resource: "*"
+
+
+  Bootcamp2017IAMRoleLambdaRESTFunctions:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "LambdaFunctionsAccess"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  -
+                    logs:CreateLogGroup
+                Resource: "arn:aws:logs:*:*:*"
+              -
+                Effect: "Allow"
+                Action:
+                  -
+                    logs:CreateLogStream
+                Resource: "arn:aws:logs:*:*:*"
+              -
+                Effect: "Allow"
+                Action:
+                  -
+                    logs:PutLogEvents
+                Resource: "arn:aws:logs:*:*:*"
+              -
+                Effect: "Allow"
+                Action: "lex:*"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action: "dynamodb:*"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action: "polly:*"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action: "iot:*"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action: "rekognition:*"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action: "s3:*"
+                Resource: "*"
+
+
+  IoTAudioStreamToDDB:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "iot.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "AudioStreamDDBTable"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "dynamodb:PutItem"
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DDBTableAudioStream}
+
+  LambdaCustomResourceSetupEnvironmentPhase1:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: !Sub awsu-bootcamps-${AWS::Region}
+        S3Key: Bootcamp2017/master-artefacts/lambda/SetupPhase1-CustomResource_latest.zip
+      FunctionName: CustomResourceSetupEnvironmentPhase1
+      Description: Lambda function Custom Resource for Bootcamp2017 setup phase 1
+      Handler: index.handler
+      Runtime: nodejs6.10
+      MemorySize: 512
+      Timeout: 300
+      Role: !GetAtt Bootcamp2017IAMRoleLambdaCustomResource.Arn
+
+
+  LambdaSmartAssistantRecogniseFace:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: !Sub awsu-bootcamps-${AWS::Region}
+        S3Key: SmartAssistant/master-artefacts/lambda/RESTSmartAssistantRecogniseFace_latest.zip
+      FunctionName: Bootcamp2017_RESTSmartAssistantRecogniseFace
+      Description: Retrieves known faces and additional metadata for the face
+      Handler: index.handler
+      Runtime: nodejs6.10
+      MemorySize: 512
+      Timeout: 30
+      Role: !GetAtt Bootcamp2017IAMRoleLambdaRESTFunctions.Arn
+      Environment:
+        Variables:
+          dynamoDBPrefix: !Sub '${AWS::StackName}'
+          cfnStackName: !Sub '${AWS::StackName}'
+          awsAccountId: !Sub '${AWS::AccountId}'
+          awsRegion:    !Sub '${AWS::Region}'
+          weatherAPIKey: ''
+          weatherUnits: !Ref OpenWeatherUnits
+
+
+  LambdaSmartAssistantRecogniseFacePermissions:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !GetAtt LambdaSmartAssistantRecogniseFace.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RESTAPI}/*/smartassistant/recogniseface
+
+  LambdaSmartAssistantTools:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: !Sub awsu-bootcamps-${AWS::Region}
+        S3Key: SmartAssistant/master-artefacts/lambda/RESTSmartAssistantTools_latest.zip
+      FunctionName: Bootcamp2017_RESTSmartAssistantTools
+      Description: Various tools that the smart assistant can provide
+      Handler: index.handler
+      Runtime: nodejs6.10
+      MemorySize: 512
+      Timeout: 30
+      Role: !GetAtt Bootcamp2017IAMRoleLambdaRESTFunctions.Arn
+      Environment:
+        Variables:
+          dynamoDBPrefix: !Sub '${AWS::StackName}'
+          cfnStackName: !Sub '${AWS::StackName}'
+          awsAccountId: !Sub '${AWS::AccountId}'
+          awsRegion:    !Sub '${AWS::Region}'
+          weatherAPIKey: ''
+          weatherUnits: !Ref OpenWeatherUnits
+
+  LambdaSmartAssistantToolsPermissions:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !GetAtt LambdaSmartAssistantTools.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RESTAPI}/*/smartassistant/tools
+
+  LambdaSmartAssistantProfile:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: !Sub awsu-bootcamps-${AWS::Region}
+        S3Key: SmartAssistant/master-artefacts/lambda/RESTSmartAssistantProfile_latest.zip
+      FunctionName: Bootcamp2017_RESTSmartAssistantProfile
+      Description: Allows new users to create a new profile for Smart Assistant
+      Handler: index.handler
+      Runtime: nodejs6.10
+      MemorySize: 512
+      Timeout: 30
+      Role: !GetAtt Bootcamp2017IAMRoleLambdaRESTFunctions.Arn
+      Environment:
+        Variables:
+          S3CacheBucket: !Ref S3WebHostingBucket
+          S3CacheBucketPath: !Ref S3CacheBucketPathParam
+          cfnStackName: !Sub '${AWS::StackName}'
+          awsAccountId: !Sub '${AWS::AccountId}'
+          awsRegion:    !Sub '${AWS::Region}'
+          weatherAPIKey: ''
+          weatherUnits: !Ref OpenWeatherUnits
+
+  LambdaSmartAssistantProfilePermissions:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !GetAtt LambdaSmartAssistantProfile.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RESTAPI}/*/smartassistant/createprofile
+
+  LambdaSynthesiseSpeech:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: !Sub awsu-bootcamps-${AWS::Region}
+        S3Key: SmartAssistant/master-artefacts/lambda/RESTSynthesiseSpeech_latest.zip
+      FunctionName: Bootcamp2017_RESTSynthesiseSpeech
+      Description: Handles synthesis of speech via the API
+      Handler: index.handler
+      Runtime: nodejs6.10
+      MemorySize: 512
+      Timeout: 10
+      Role: !GetAtt Bootcamp2017IAMRoleLambdaRESTFunctions.Arn
+      Environment:
+        Variables:
+          S3CacheBucket: !Ref S3WebHostingBucket
+          S3CacheBucketPath: !Ref S3CacheBucketPathParam
+          cfnStackName: !Sub '${AWS::StackName}'
+          awsAccountId: !Sub '${AWS::AccountId}'
+          awsRegion:    !Sub '${AWS::Region}'
+
+  LambdaSynthesiseSpeechPermissions:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !GetAtt LambdaSynthesiseSpeech.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RESTAPI}/*/synthesisespeech
+
+  LambdaSmartAssistantProcessLexDialog:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: !Sub awsu-bootcamps-${AWS::Region}
+        S3Key: SmartAssistant/master-artefacts/lambda/RESTSmartAssistantProcessLexDialog_latest.zip
+      FunctionName: Bootcamp2017_RESTSmartAssistantProcessLexDialog
+      Description: Process an interaction dialog with Lex - voice, text or stream key
+      Handler: index.handler
+      Runtime: nodejs6.10
+      MemorySize: 512
+      Timeout: 10
+      Role: !GetAtt Bootcamp2017IAMRoleLambdaRESTFunctions.Arn
+      Environment:
+        Variables:
+          S3CacheBucket: !Ref S3WebHostingBucket
+          S3CacheBucketPath: !Ref S3CacheBucketPathParam
+          cfnStackName: !Sub '${AWS::StackName}'
+          awsAccountId: !Sub '${AWS::AccountId}'
+          awsRegion:    !Sub '${AWS::Region}'
+
+  LambdaSmartAssistantProcessLexDialogPermissions:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !GetAtt LambdaSmartAssistantProcessLexDialog.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RESTAPI}/*/smartassistant/processlexdialog
+
+  RESTAPIDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    Properties:
+      RestApiId: !Ref RESTAPI
+      Description: "Development deployment"
+      StageName: "dev"
+      StageDescription:
+        StageName: "dev"
+        Description: "Development Stage"
+        Variables:
+          Bootcamp2017_RESTSynthesiseSpeech: !Ref LambdaSynthesiseSpeech
+          Bootcamp2017_RESTSmartAssistantProfile: !Ref LambdaSmartAssistantProfile
+          Bootcamp2017_RESTSmartAssistantRecogniseFace: !Ref LambdaSmartAssistantRecogniseFace
+          Bootcamp2017_RESTSmartAssistantTools: !Ref LambdaSmartAssistantTools
+          Bootcamp2017_RESTSmartAssistantProcessLexDialog: !Ref LambdaSmartAssistantProcessLexDialog
+
+  S3WebHostingBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref S3WebHostingBucket
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - "s3:GetObject"
+            Effect: "Allow"
+            Resource:
+              Fn::Join:
+                - ""
+                -
+                  - "arn:aws:s3:::"
+                  -
+                    Ref: "S3WebHostingBucket"
+                  - "/www/*"
+            Principal: "*"
+          -
+            Action:
+              - "s3:GetObject"
+            Effect: "Allow"
+            Resource:
+              Fn::Join:
+                - ""
+                -
+                  - "arn:aws:s3:::"
+                  -
+                    Ref: "S3WebHostingBucket"
+                  - "/favicon.ico"
+            Principal: "*"
+
+  S3WebHostingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: !Sub "${AWS::StackName}-bootcamp2017"
+      WebsiteConfiguration:
+        IndexDocument: index.html
+
+  DDBTableAudioStream:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      ProvisionedThroughput:
+        ReadCapacityUnits: 30
+        WriteCapacityUnits: 30
+      TableName: !Sub '${AWS::StackName}-SmartAssistant-AudioStreams'
+
+      AttributeDefinitions:
+        -
+          AttributeName: "streamId"
+          AttributeType: "S"
+        -
+          AttributeName: "chunkId"
+          AttributeType: "N"
+      KeySchema:
+        -
+          AttributeName: "streamId"
+          KeyType: "HASH"
+        -
+          AttributeName: "chunkId"
+          KeyType: "RANGE"
+
+  DDBTableKnownFacesSmartAssistant:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      ProvisionedThroughput:
+        ReadCapacityUnits:
+          Ref: "ReadCapacityUnits"
+        WriteCapacityUnits:
+          Ref: "WriteCapacityUnits"
+      TableName: !Sub '${AWS::StackName}-SmartAssistant-KnownFaces'
+
+      AttributeDefinitions:
+        -
+          AttributeName: "faceId"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "faceId"
+          KeyType: "HASH"
+
+  LexLambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "lex-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+Outputs:
+
+  S3Bucket:
+    Value: !Ref S3WebHostingBucket
+  
+  # RESTAPIInvokeUrl :
+  #   Description: 'RESTAPI endpoint'
+  #   Value: !Sub https://${RESTAPI}.execute-api.${AWS::Region}.amazonaws.com/dev
+  # 
+  # CognitoUserPoolClientId:
+  #   Description: 'Client Id for Cognito User Pool application'
+  #   Value: !Ref CognitoUserPoolClient
+  # 
+  # CognitoUserPoolId:
+  #   Description: 'Cognito User Pool Id'
+  #   Value: !Ref CognitoUserPool
+  # 
+  # SmartAssistantCertificate:
+  #   Description: 'Certificate for Smart Assistant Device'
+  #   Value: !GetAtt SetupEnvironmentPhase1.smartassistantDeviceCertificatePemUrl
+  # 
+  # SmartAssistantPrivateKey:
+  #   Description: 'Private Key for Smart Assistant Device'
+  #   Value: !GetAtt SetupEnvironmentPhase1.smartassistantDevicePrivateKeyUrl
+
+  SmartAssistantDeviceSetupConfigUrl:
+    Description: 'Pre-signed URL to the Smart Assistant Setup Config File'
+    Value: !GetAtt SetupEnvironmentPhase1.smartAssistantDeviceSetupConfigUrl

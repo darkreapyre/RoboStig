@@ -1,0 +1,780 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+    GitHubUser:
+    Type: String
+    Description: GitHub username.
+  GitHubRepo:
+    Type: String
+    Default: RoboStig
+    Description: The repository name of the Behavioral Clonning Workshop.
+    AllowedPattern: "[A-Za-z0-9_.-]*"
+    MaxLength: 50
+  GitHubBranch:
+    Type: String
+    Default: setup
+    Description: The branch of the repository to deploy.
+  GitHubToken:
+    Type: String
+    Description: >
+      Token for the user specified above. (https://github.com/settings/tokens)
+  TrainingInstanceType:
+    Description: Instance type to launch trained production model endpoint with. 
+    Type: String
+    Default: ml.p3.2xlarge
+  ProductionInstanceType:
+    Description: Instance type to launch trained production model endpoint with. 
+    Type: String
+    Default: ml.c4.xlarge
+  SageMakerExecutionRole:
+    Description: ARN of IAM role SageMaker can assume to access model artifacts and docker image for training and deployment on ML compute instances.
+    Type: String
+    NoEcho: true
+  ModelPrefix: 
+    Description: Prefix to prepend to resources created for the model.
+    Type: String
+    Default: pystig
+  TrainingInterval:
+    Description: Number of days to look into the past for training data
+    Type: String
+    Default: 1
+  BucketName:
+    Description: Name to create S3 bucket that will hold training data and model artifacts with. Must contain 'sagemaker' in name.
+    Type: String
+    Default: sagemaker-workshop
+  EmailAddress:
+    Description: E-Mail Address to send "Workshop Deployed!!!" updates to.
+    Type: String
+
+Resources:
+  SNSTopic:
+    Type: 'AWS::SNS::Topic'
+    Description: Deployment complete Message.
+    Properties:
+      DisplayName: SageMaker WorkShop Deployed
+      Subscription:
+        - Endpoint: !Ref EmailAddress
+          Protocol: email
+      TopicName: !Sub ${AWS::StackName}-SNS
+
+  RunRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Name: ServerlessSageMakerOrchestrationRule
+      ScheduleExpression: rate(1 hour)
+      State: "ENABLED"
+      Targets: 
+        - 
+          Arn: !Ref SageMakerStateMachine
+          Id: "PyStigV1"
+          RoleArn: !GetAtt ExecuteStateMachineRole.Arn
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties: 
+      BucketName: !Sub ${BucketName}-${AWS::AccountId}-${AWS::Region}
+
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+
+  Repository:
+    Type: AWS::ECR::Repository
+    DeletionPolicy: Delete
+    Properties:
+      RepositoryName: !Sub ${ModelPrefix}
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: AllowPull
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - ecr:GetDownloadUrlForLayer
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+
+## Determine if this is needed
+#  CloudFormationExecutionRole:
+#    Type: AWS::IAM::Role
+#    DeletionPolicy: Retain
+#    Properties:
+#      #RoleName: !Sub cfn-${AWS::StackName}
+#      Path: /
+#      AssumeRolePolicyDocument: |
+#        {
+#            "Statement": [{
+#                "Effect": "Allow",
+#                "Principal": { "Service": [ "cloudformation.amazonaws.com" ]},
+#                "Action": [ "sts:AssumeRole" ]
+#            }]
+#        }
+#      Policies:
+#        - PolicyName: root
+#          PolicyDocument:
+#            Version: 2012-10-17
+#            Statement:
+#              - Resource: "*"
+#                Effect: Allow
+#                Action:
+#                  - ecs:*
+#                  - ecr:*
+#                  - iam:*
+#                  - ec2:*
+#                  - elasticloadbalancing:*
+#                  - autoscaling:*
+#                  - logs:*
+
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+     Path: /
+      AssumeRolePolicyDocument: |
+        {
+            "Statement": [{
+                "Effect": "Allow",
+                "Principal": { "Service": [ "codebuild.amazonaws.com" ]},
+                "Action": [ "sts:AssumeRole" ]
+            }]
+        }
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource: "*"
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - ecr:GetAuthorizationToken
+#                  - cloudformation:Describe*
+                  - codepipeline:Get*
+                  - codebuild:BatchGetBuilds
+              - Resource: !Sub arn:aws:s3:::${ArtifactBucket}/*
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:GetObjectVersion
+              - Resource: !Sub arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${Repository}
+                Effect: Allow
+                Action:
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:PutImage
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+
+  CodePipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument: |
+        {
+            "Statement": [{
+                "Effect": "Allow",
+                "Principal": { "Service": [ "codepipeline.amazonaws.com" ]},
+                "Action": [ "sts:AssumeRole" ]
+            }]
+        }
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource:
+                  - !Sub arn:aws:s3:::${ArtifactBucket}
+                  - !Sub arn:aws:s3:::${ArtifactBucket}/*
+                  - !Sub arn:aws:s3:::${S3Bucket}
+                  - !Sub arn:aws:s3:::${S3Bucket}/*
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketVersioning
+              - Resource: "*"
+                Effect: Allow
+                Action:
+                  - codebuild:StartBuild
+                  - codebuild:BatchGetBuilds
+#                  - cloudformation:*
+#                  - lambda:*
+                  - iam:PassRole
+#                  - sns:Publish
+
+  TrainContainerBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: !Sub |
+          version: 0.2
+          phases:
+            install:
+              commands:
+                - apt-get update && apt-get -y install python-pip
+                - pip install --upgrade python
+                - pip install --upgrade awscli
+            pre_build:
+              commands: 
+                - printenv
+                - printf "%s:%s" "$REPOSITORY_URI" "train" > /tmp/build_tag.out
+                - printf '{"tag":"%s"}' "$(cat /tmp/build_tag.out)" > /tmp/build.json
+                - $(aws ecr get-login --no-include-email)
+            build:
+              commands:
+                - docker build -t "$(cat /tmp/build_tag.out)" -f Dockerfile.train .
+            post_build:
+              commands:
+                - docker push "$(cat /tmp/build_tag.out)"
+          artifacts:
+            files: /tmp/build.json
+            discard-paths: yes
+      Environment:
+        ComputeType: "BUILD_GENERAL1_SMALL"
+        Image: "aws/codebuild/docker:17.09.0"
+        Type: "LINUX_CONTAINER"
+        EnvironmentVariables:
+          - Name: AWS_DEFAULT_REGION
+            Value: !Ref AWS::Region
+          - Name: REPOSITORY_URI
+            Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}
+      Name: train-container build
+      ServiceRole: !Ref CodeBuildServiceRole
+
+  ServeContainerBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: !Sub |
+          version: 0.2
+          phases:
+            install:
+              commands:
+                - apt-get update && apt-get -y install python-pip
+                - pip install --upgrade python
+                - pip install --upgrade awscli
+            pre_build:
+              commands: 
+                - printenv
+                - printf "%s:%s" "$REPOSITORY_URI" "serve" > /tmp/build_tag.out
+                - printf '{"tag":"%s"}' "$(cat /tmp/build_tag.out)" > /tmp/build.json
+                - $(aws ecr get-login --no-include-email)
+            build:
+              commands:
+                - docker build -t "$(cat /tmp/build_tag.out)" -f Dockerfile.serve .
+            post_build:
+              commands:
+                - docker push "$(cat /tmp/build_tag.out)"
+          artifacts:
+            files: /tmp/build.json
+            discard-paths: yes
+      Environment:
+        ComputeType: "BUILD_GENERAL1_SMALL"
+        Image: "aws/codebuild/docker:17.09.0"
+        Type: "LINUX_CONTAINER"
+        EnvironmentVariables:
+          - Name: AWS_DEFAULT_REGION
+            Value: !Ref AWS::Region
+          - Name: REPOSITORY_URI
+            Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}
+      Name: serve-container-build
+      ServiceRole: !Ref CodeBuildServiceRole
+
+  DataUploadProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: |
+          version: 0.1
+          phases:
+            install:
+              commands:
+                - apt-get update && apt-get -y install python-pip wget curl
+                - pip install --upgrade python
+                - pip install --upgrade awscli
+            pre_build:
+              commands:
+                - printenv
+                - wget $DATA_SOURCE
+                - unzip data.zip
+                - rm -rf __*
+                - aws s3 cp --recursive  ./data s3://$S3_BUCKET/data --acl public-read
+#          artifacts:
+#            files: cf_inputs.json
+#            discard-paths: yes
+      Environment:
+        ComputeType: "BUILD_GENERAL1_SMALL"
+        Image: aws/codebuild/python:2.7.12
+        Type: "LINUX_CONTAINER"
+        EnvironmentVariables:
+          - Name: AWS_DEFAULT_REGION
+            Value: !Ref AWS::Region
+          - Name: DATA_SOURCE
+            Value: "https://d17h27t6h515a5.cloudfront.net/topher/2016/December/584f6edd_data/data.zip"
+          - Name: S3_BUCKET
+            Value: !Ref S3Bucket
+      Name: training-data-upload
+      ServiceRole: !Ref CodeBuildServiceRole
+
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      RoleArn: !GetAtt CodePipelineServiceRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactBucket
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: CodeSource
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              Configuration:
+                Owner: !Ref GitHubUser
+                Repo: !Ref GitHubRepo
+                Branch: !Ref GitHubBranch
+                OAuthToken: !Ref GitHubToken
+              OutputArtifacts:
+                - Name: Code
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: TrainBuild
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref TrainContainerBuildProject
+              InputArtifacts:
+                - Name: Code
+              OutputArtifacts:
+                - Name: TrainBuildOutput
+              RunOrder: 1
+            - Name: ServeBuild
+              ActionTypeId:
+                Catagory: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref ServeContainerBuildProject
+              InputArtifacts:
+                - Name: Code
+              OutputArtifacts:
+                - Name: ServeBuildOutput
+              RunOrder: 2
+            - Name: DataUpload
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref DataUploadProject
+              InputArtifacts:
+                - Name: Code
+              OutputArtifacts:
+                - Name: DataUploadOutput
+              RunOrder: 3
+
+  ExecuteStateMachineRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "AllowCWEServiceToAssumeRole"
+            Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "ExecuteStateMachine"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "states:StartExecution"
+                Resource: "*"
+
+  SageMakerStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionString: !Sub |-
+        {
+          "StartAt": "CheckData",
+          "States": {
+            "CheckData": {
+              "Type": "Task",
+              "Resource": "${CheckDataFunction.Arn}",
+              "ResultPath": "$",
+              "Next": "CheckDataBranch"
+            },
+            "CheckDataBranch": {
+              "Type": "Choice",
+              "Choices": [{
+                  "Variable": "$.no_new_data",
+                  "BooleanEquals": true,
+                  "Next": "NoNewData"
+                },
+                {
+                  "Variable": "$.no_new_data",
+                  "BooleanEquals": false,
+                  "Next": "StartTrainingJob"
+                }
+              ]
+            },
+            "StartTrainingJob": {
+              "Type": "Task",
+              "Resource": "${StartTrainingJobFunction.Arn}",
+              "ResultPath": "$",
+              "Next": "NotifySlack"
+            },
+            "NoNewData": {
+              "Type": "Pass",
+              "End": true
+            },
+            "CheckStatusBranch": {
+              "Type": "Choice",
+              "Choices": [{
+                  "Or": [{
+                      "Variable": "$.status",
+                      "StringEquals": "Completed"
+                    },
+                    {
+                      "Variable": "$.status",
+                      "StringEquals": "InService"
+                    }
+                  ],
+                  "Next": "NotifySlack"
+                },
+                {
+                  "Or": [{
+                      "Variable": "$.status",
+                      "StringEquals": "InProgress"
+                    },
+                    {
+                      "Variable": "$.status",
+                      "StringEquals": "Creating"
+                    },
+                    {
+                      "Variable": "$.status",
+                      "StringEquals": "Updating"
+                    }
+                  ],
+                  "Next": "CheckStatusWait"
+                },
+                {
+                  "Or": [{
+                      "Variable": "$.status",
+                      "StringEquals": "Failed"
+                    },
+                    {
+                      "Variable": "$.status",
+                      "StringEquals": "RollingBack"
+                    }
+                  ],
+                  "Next": "NotifySlack"
+                }
+              ]
+            },
+            "CheckStatusWait": {
+              "Type": "Wait",
+              "Seconds": 60,
+              "Next": "GetStatus"
+            },
+            "GetStatus": {
+              "Type": "Task",
+              "Resource": "${GetStatusFunction.Arn}",
+              "ResultPath": "$",
+              "Next": "CheckStatusBranch"
+            },
+            "NotifySlackBranch": {
+              "Type": "Choice",
+              "Choices": [{
+                  "Or": [{
+                      "Variable": "$.status",
+                      "StringEquals": "InProgress"
+                    },
+                    {
+                      "Variable": "$.status",
+                      "StringEquals": "Creating"
+                    },
+                    {
+                      "Variable": "$.status",
+                      "StringEquals": "Updating"
+                    }
+                  ],
+                  "Next": "CheckStatusWait"
+                },
+                {
+                  "And": [{
+                      "Variable": "$.status",
+                      "StringEquals": "Failed"
+                    },
+                    {
+                      "Variable": "$.stage",
+                      "StringEquals": "Training"
+                    }
+                  ],
+                  "Next": "JobFailed"
+                },
+                {
+                  "Variable": "$.status",
+                  "StringEquals": "Completed",
+                  "Next": "JobCompleted"
+                },
+                {
+                  "Variable": "$.status",
+                  "StringEquals": "InService",
+                  "Next": "DeploymentCompleted"
+                },
+                {
+                  "And": [{
+                      "Or": [{
+                          "Variable": "$.status",
+                          "StringEquals": "Failed"
+                        },
+                        {
+                          "Variable": "$.status",
+                          "StringEquals": "RollingBack"
+                        }
+                      ]
+                    },
+                    {
+                      "Variable": "$.stage",
+                      "StringEquals": "Deployment"
+                    }
+                  ],
+                  "Next": "DeploymentFailed"
+                }
+              ]
+            },
+            "NotifySlack": {
+              "Type": "Task",
+              "Resource": "${NotifySlackFunction.Arn}",
+              "Next": "NotifySlackBranch"
+            },
+            "JobCompleted": {
+              "Type": "Pass",
+              "Next": "DeployModel"
+            },
+            "JobFailed": {
+              "Type": "Fail"
+            },
+            "DeployModel": {
+              "Type": "Task",
+              "Resource": "${DeployModelFunction.Arn}",
+              "Next": "NotifySlack"
+            },
+            "DeploymentCompleted": {
+              "Type": "Pass",
+              "Next": "UpdateParameters"
+            },
+            "DeploymentFailed": {
+              "Type": "Fail"
+            },
+            "UpdateParameters": {
+              "Type": "Task",
+              "Resource": "${UpdateParametersFunction.Arn}",
+              "End": true
+            }
+          }
+        }
+      RoleArn: !GetAtt StepFunctionExecutionRole.Arn
+
+  StepFunctionExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: !Sub states.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: StatesExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: "*"
+
+  SSMParameter:
+    Type: "AWS::SSM::Parameter"
+    Properties: 
+      Name: !Sub '/models/${ModelPrefix}/train/latest'
+      Description: Stores the date of latest training data model was run on.
+      Type: String
+      Value: 0
+
+  GetStatusFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: get_status.lambda_handler
+      Runtime: python3.6
+      CodeUri: ../lambda_functions/
+      Description: 'Checks status of SageMaker training jobs and endpoint deployment'
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action:
+                - "sagemaker:DescribeEndpoint"
+                - "sagemaker:DescribeTrainingJob"
+              Resource: "*"
+
+  UpdateParametersFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: update_parameters.lambda_handler
+      Runtime: python3.6
+      CodeUri: ../lambda_functions/
+      Description: 'Updates SSM Parameter Store parameter to reflect date of latest data file trained on.'
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action:
+                - "ssm:PutParameter"
+              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SSMParameter}'
+
+  DeployModelFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: deploy_model.lambda_handler
+      Runtime: python3.6
+      CodeUri: ../lambda_functions/
+      Description: 'Deploys trained model to invokable endpoint'
+      Timeout: 10
+      Environment:
+        Variables:
+          EXECUTION_ROLE: !Ref SageMakerExecutionRole
+          INSTANCE_TYPE: !Ref ProductionInstanceType
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action:
+                - "sagemaker:UpdateEndpoint"
+                - "sagemaker:CreateModel"
+                - "sagemaker:CreateEndpointConfig"
+                - "sagemaker:DescribeEndpoint"
+                - "sagemaker:CreateEndpoint"
+              Resource: "*"
+            - Effect: "Allow"
+              Action:
+                - "iam:PassRole"
+              Resource: !Ref SageMakerExecutionRole
+
+  StartTrainingJobFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: start_training_job.lambda_handler
+      Runtime: python3.6
+      CodeUri: ../lambda_functions/
+      Description: 'Starts model training job'
+      Environment:
+        Variables:
+          SAGEMAKER_ROLE: !Ref SageMakerExecutionRole
+          TRAINING_INSTANCE_TYPE: !Ref TrainingInstanceType
+          CONTAINER: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}:train
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action:
+                - "sagemaker:CreateTrainingJob"
+              Resource: "*"
+            - Effect: "Allow"
+              Action:
+                - "iam:PassRole"
+              Resource: !Ref SageMakerExecutionRole
+
+  NotifySlackFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: notify_slack.lambda_handler
+      Runtime: python3.6
+      CodeUri: ../lambda_functions/
+      Description: 'Posts message to Slack channel'
+#      Environment:
+#        Variables:
+#          ENABLED: !Ref EnableSlack
+#          ACCESS_TOKEN: !Ref SlackAccessToken
+#          CHANNEL: !Ref SlackChannel
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  CheckDataFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: check_data.lambda_handler
+      Runtime: python3.6
+      CodeUri: ../lambda_functions/
+      Description: 'Checks to see if new training data has been uploaded since last training job and adds data found in training interval to training manifest'
+      Timeout: 10
+      Environment:
+        Variables:
+          BUCKET: !Ref BucketName
+          INTERVAL: !Ref TrainingInterval
+          MODEL_PREFIX: !Ref ModelPrefix
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action:
+                - "s3:PutObject"
+                - "s3:GetObject"
+              Resource: !Sub 'arn:aws:s3:::${BucketName}/*'
+            - Effect: "Allow"
+              Action:
+                - "ssm:GetParameter"
+              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SSMParameter}'
+
+Outputs:
+  S3BucketName:
+    Description: S3 bucket that will hold training data and model artifacts.
+    Value: !Ref BucketName
+  
+  Repository:
+    Description: ECR Repository for SageMaker custom training and serving containers.
+    Value: !Ref Repository
