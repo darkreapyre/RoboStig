@@ -35,10 +35,6 @@ Parameters:
     Description: Prefix to prepend to resources created for the model.
     Type: String
     Default: pyStig
-  TrainingInterval:
-    Description: Number of days to look into the past for training data
-    Type: String
-    Default: 1
   BucketName:
     Description: Name to create S3 bucket that will hold training data and model artifacts with. Must contain 'sagemaker' in name.
     Type: String

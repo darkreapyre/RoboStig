@@ -1,0 +1,42 @@
+[
+  {
+    "ParameterKey": "GitHubUser",
+    "ParameterValue": "<<Enter the GitHub User Account>>"
+  }, 
+  {
+    "ParameterKey": "GitHubRepo",
+    "ParameterValue": "<<Enter the GitHub Repository>>"
+  },
+  {
+    "ParameterKey": "GitHubBranch",
+    "ParameterValue": "setup"
+  },
+  {
+    "ParameterKey": "GitHubToken",
+    "ParameterValue": "<<Enter the GitHub Token for your GitHub Repository>>"
+  },
+  {
+    "ParameterKey": "TrainingInstanceType",
+    "ParameterValue": "ml.p3.2xlarge"
+  },
+  {
+    "ParameterKey": "ProductionInstanceType",
+    "ParameterValue": "ml.c4.xlarge"
+  },
+  {
+    "ParameterKey": "SageMakerExecutionRole",
+    "ParameterValue": "<<Enter the SageMaker Role created for the Workshop>>"
+  },
+  {
+    "ParameterKey": "ModelPrefix",
+    "ParameterValue": "pyStig"
+  },
+  {
+    "ParameterKey": "BucketName",
+    "ParameterValue": "sagemaker-workshop"
+  },
+  {
+    "ParameterKey": "EmailAddress",
+    "ParameterValue": "<<Enter Status Update e-mail address"
+  }
+]
