@@ -14,7 +14,7 @@ Along with extracting the necessary features from the data, a similar pre-proces
 ---
 ## Image Augmentation
 
-<<MARKDOWN CELL>>  
+<MARKDOWN_CELL>
 
 As already mentioned, you will need to add more diversity to the Training data, so the data isn;t skewed toward only driving straight. In order to accomplish this, you will take some of the existing images (primarily the __left__ and __right__ camera images) and adjust them just enough so that they can add the additional variance required.
 
@@ -44,10 +44,10 @@ __Exercise:__ For the next exercise, you will implement *some* of the image augm
 <strong>Hint: </stong>The `cv2.cvtColor()` function may be helpful, paying attention to HSV (Hue, Saturation, Value) or HSB.
 </div>
 
-<</MARKDOWN CELL>>  
+</MARKDOWN_CELL>
 
 
-<<CODE CELL>>  
+<CODE_CELL>  
 
 # Image Augmentation: Random Flip
 def random_flip(image, steering_angle):
@@ -68,9 +68,9 @@ def random_flip(image, steering_angle):
     return None
     ###   END OF YOUR CODE ###
 
-<</CODE CELL>>
+</CODE_CELL>>
 
-<<MARKDOWN CELL>>
+<MARKDOWN_CELL>
 
 <details><summary><b>Solution (Click to expand)</b></summary><p>
 
@@ -104,9 +104,9 @@ def random_flip(image, steering_angle):
 
 </p><details>
 
-<</MARKDOWN CELL>>
+</MARKDOWN_CELL>
 
-<<CODE CELL>>
+<CODE_CELL>
 
 # Image Augmentation: Random Translate
 def translate(image, steering_angle, x_range, y_range):
@@ -193,9 +193,9 @@ def brightness(image):
     return None
     ###   END OF YOUR CODE ###
 
-<</CODE CELL>>
+</CODE_CELL>
 
-<<MARKDOWN CELL>>
+<MARKDOWN_CELL>
 
 <details><summary><b>Solution (Click to expand)</b></summary><p>
 
@@ -220,7 +220,7 @@ def brightness(image):
 </p>
 </details>
 
-<</MARKDOW  CELL>>
+</MARKDOW _CELL>
 
 ---
 
