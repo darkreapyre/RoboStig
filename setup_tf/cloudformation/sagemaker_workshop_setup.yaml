@@ -1,7 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  This template can be used to deploy the Behavioral CLoning with SageMaker Workshop. Please update the "parameters.json" file before launching the template. See "README.md" for instructions.
+  This template can be used to deploy the Behavioral Cloning with SageMaker Workshop.
+  Please update the "parameters.json" file before launching the template
+  (See the "README.md" file for instructions).
 
 Parameters:
     GitHubUser:
@@ -42,13 +44,13 @@ Parameters:
     Type: String
     Default: sagemaker-workshop
   EmailAddress:
-    Description: E-Mail Address to send "Workshop Deployed!!!" updates to.
+    Description: E-Mail Address to send deployment updates to.
     Type: String
 
 Resources:
   SNSTopic:
-    Type: 'AWS::SNS::Topic'
-    Description: Deployment complete Message.
+    Type: AWS::SNS::Topic
+    Description: Deployment status messages.
     Properties:
       DisplayName: SageMaker WorkShop Deployed
       Subscription:
