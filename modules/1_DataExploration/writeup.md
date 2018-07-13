@@ -14,7 +14,8 @@ Along with extracting the necessary features from the data, a similar pre-proces
 ---
 ## Image Augmentation
 
-<<MARKDOWN CELL>>
+<<MARKDOWN CELL>>  
+
 As already mentioned, you will need to add more diversity to the Training data, so the data isn;t skewed toward only driving straight. In order to accomplish this, you will take some of the existing images (primarily the __left__ and __right__ camera images) and adjust them just enough so that they can add the additional variance required.
 
 <div class="alert alert-primary" role="alert">
@@ -43,10 +44,10 @@ __Exercise:__ For the next exercise, you will implement *some* of the image augm
 <strong>Hint: </stong>The `cv2.cvtColor()` function may be helpful, paying attention to HSV (Hue, Saturation, Value) or HSB.
 </div>
 
-<</MARKDOWN CELL>>
+<</MARKDOWN CELL>>  
 
 
-<<CODE CELL>>
+<<CODE CELL>>  
 
 # Image Augmentation: Random Flip
 def random_flip(image, steering_angle):
