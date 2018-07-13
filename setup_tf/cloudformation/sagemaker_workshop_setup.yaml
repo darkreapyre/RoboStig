@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  This template can be used to deploy the Autonomous Vehicle with SageMaker Workshop. Please update the "parameters.json" file before launching the template. See "README.md" for instructions.
+  This template can be used to deploy the Behavioral CLoning with SageMaker Workshop. Please update the "parameters.json" file before launching the template. See "README.md" for instructions.
 
 Parameters:
     GitHubUser:
