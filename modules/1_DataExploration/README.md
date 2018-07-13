@@ -1,4 +1,4 @@
-# Modeule 1: Data Exploration
+# Module 1: Data Exploration
 ## Module Objective
 In this module you will explore the driving observations captured from the simulator. In order to create the most effective model for __RoboStig__ to use, exploring and understanding the data is crucial. Therefore, after exploring the data, you will determine the best features to extract and train on. Additionally, you will look at various options to transform and augment the data to ensure:
 
@@ -54,7 +54,7 @@ $ git clone https://github.com/darkreapyre/RoboStig
 $ exit
 ```
 
-3. Closing the terminal tab will return you to the main Jupyter menu. Navigate to the `RoboStig\modules\1_DataExploratin\Data_Exploration.ipynb` Notebook to get get started exploring the driving observation data. Work through these steps on the Notebook to see explore the data:
-- To run the notebook document step-by-step (one cell a time) by pressing shift + enter.
-- To restart the kernel (i.e. the computational engine), click on the menu **Kernel** -> **Restart**. This can be useful to start over a computation from scratch (e.g. variables are deleted, open files are closed, etc…).
-- More information on editing a notebook can be found on the [Notebook Basics](http://nbviewer.jupyter.org/github/jupyter/notebook/blob/master/docs/source/examples/Notebook/Notebook%20Basics.ipynb) page.
+3. Closing the terminal tab will return you to the main Jupyter menu. Navigate to __RoboStig --> modules --> 1_DataExploratin__ and click on the `Data_Exploration.ipynb` Notebook to get get started exploring the driving observation data. Work through these steps on the Notebook to see explore the data:
+    - To run the notebook document step-by-step (one cell a time) by pressing shift + enter.
+    - To restart the kernel (i.e. the computational engine), click on the menu **Kernel** -> **Restart**. This can be useful to start over a computation from scratch (e.g. variables are deleted, open files are closed, etc…).
+    - More information on editing a notebook can be found on the [Notebook Basics](http://nbviewer.jupyter.org/github/jupyter/notebook/blob/master/docs/source/examples/Notebook/Notebook%20Basics.ipynb) page.
