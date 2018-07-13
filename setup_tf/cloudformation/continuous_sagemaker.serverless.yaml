@@ -34,7 +34,7 @@ Parameters:
   ModelPrefix: 
     Description: Prefix to prepend to resources created for the model.
     Type: String
-    Default: pystig
+    Default: pyStig
   TrainingInterval:
     Description: Number of days to look into the past for training data
     Type: String
@@ -57,18 +57,6 @@ Resources:
         - Endpoint: !Ref EmailAddress
           Protocol: email
       TopicName: !Sub ${AWS::StackName}-SNS
-
-  RunRule:
-    Type: "AWS::Events::Rule"
-    Properties:
-      Name: ServerlessSageMakerOrchestrationRule
-      ScheduleExpression: rate(1 hour)
-      State: "ENABLED"
-      Targets: 
-        - 
-          Arn: !Ref SageMakerStateMachine
-          Id: "PyStigV1"
-          RoleArn: !GetAtt ExecuteStateMachineRole.Arn
 
   S3Bucket:
     Type: AWS::S3::Bucket
@@ -206,7 +194,7 @@ Resources:
                   - codebuild:StartBuild
                   - codebuild:BatchGetBuilds
 #                  - cloudformation:*
-#                  - lambda:*
+                  - lambda:*
                   - iam:PassRole
 #                  - sns:Publish
 
@@ -228,7 +216,7 @@ Resources:
             pre_build:
               commands: 
                 - printenv
-                - printf "%s:%s" "$REPOSITORY_URI" "train" > /tmp/build_tag.out
+                - printf "%s:%s" "$REPOSITORY_URI" "keras-gpu" > /tmp/build_tag.out
                 - printf '{"tag":"%s"}' "$(cat /tmp/build_tag.out)" > /tmp/build.json
                 - $(aws ecr get-login --no-include-email)
             build:
@@ -270,7 +258,7 @@ Resources:
             pre_build:
               commands: 
                 - printenv
-                - printf "%s:%s" "$REPOSITORY_URI" "serve" > /tmp/build_tag.out
+                - printf "%s:%s" "$REPOSITORY_URI" "keras-cpu" > /tmp/build_tag.out
                 - printf '{"tag":"%s"}' "$(cat /tmp/build_tag.out)" > /tmp/build.json
                 - $(aws ecr get-login --no-include-email)
             build:
@@ -313,7 +301,8 @@ Resources:
               commands:
                 - printenv
                 - wget $DATA_SOURCE
-                - unzip data.zip
+                - aws s3 cp ./data.zip s3://$S3_BUCKET/data --acl public-read
+                - unzip ./data.zip
                 - rm -rf __*
                 - aws s3 cp --recursive  ./data s3://$S3_BUCKET/data --acl public-read
 #          artifacts:
@@ -384,7 +373,7 @@ Resources:
                 - Name: Code
               OutputArtifacts:
                 - Name: ServeBuildOutput
-              RunOrder: 2
+              RunOrder: 1
             - Name: DataUpload
               ActionTypeId:
                 Category: Build
@@ -397,71 +386,58 @@ Resources:
                 - Name: Code
               OutputArtifacts:
                 - Name: DataUploadOutput
-              RunOrder: 3
+              RunOrder: 1
+        - Name: Launch
+          Actions:
+            - Name: StartSateMachine
+              ActionTypeId:
+                Category: Invoke
+                Owner: AWS
+                Version: 1
+                Provider: Lambda
+              Configuration:
+                FunctionName: ! ExecuteStateMachineFunction
+              RunOrder: 1
 
-  ExecuteStateMachineRole:
-    Type: "AWS::IAM::Role"
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          -
-            Sid: "AllowCWEServiceToAssumeRole"
-            Effect: "Allow"
-            Action:
-              - "sts:AssumeRole"
-            Principal:
-              Service:
-                - "events.amazonaws.com"
-      Path: "/"
-      Policies:
-        -
-          PolicyName: "ExecuteStateMachine"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              -
-                Effect: "Allow"
-                Action:
-                  - "states:StartExecution"
-                Resource: "*"
+#  ExecuteStateMachineRole:
+#    Type: "AWS::IAM::Role"
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          -
+#            Sid: "AllowCWEServiceToAssumeRole"
+#            Effect: "Allow"
+#            Action:
+#              - "sts:AssumeRole"
+#            Principal:
+#              Service:
+#                - "events.amazonaws.com"
+#      Path: "/"
+#      Policies:
+#        -
+#          PolicyName: "ExecuteStateMachine"
+#          PolicyDocument:
+#            Version: "2012-10-17"
+#            Statement:
+#              -
+#                Effect: "Allow"
+#                Action:
+#                  - "states:StartExecution"
+#                Resource: "*"
 
   SageMakerStateMachine:
     Type: AWS::StepFunctions::StateMachine
     Properties:
       DefinitionString: !Sub |-
         {
-          "StartAt": "CheckData",
+          "StartAt": "StartTrainingJob",
           "States": {
-            "CheckData": {
-              "Type": "Task",
-              "Resource": "${CheckDataFunction.Arn}",
-              "ResultPath": "$",
-              "Next": "CheckDataBranch"
-            },
-            "CheckDataBranch": {
-              "Type": "Choice",
-              "Choices": [{
-                  "Variable": "$.no_new_data",
-                  "BooleanEquals": true,
-                  "Next": "NoNewData"
-                },
-                {
-                  "Variable": "$.no_new_data",
-                  "BooleanEquals": false,
-                  "Next": "StartTrainingJob"
-                }
-              ]
-            },
             "StartTrainingJob": {
               "Type": "Task",
               "Resource": "${StartTrainingJobFunction.Arn}",
               "ResultPath": "$",
-              "Next": "NotifySlack"
-            },
-            "NoNewData": {
-              "Type": "Pass",
-              "End": true
+              "Next": "Notify"
             },
             "CheckStatusBranch": {
               "Type": "Choice",
@@ -475,7 +451,7 @@ Resources:
                       "StringEquals": "InService"
                     }
                   ],
-                  "Next": "NotifySlack"
+                  "Next": "Notify"
                 },
                 {
                   "Or": [{
@@ -503,7 +479,7 @@ Resources:
                       "StringEquals": "RollingBack"
                     }
                   ],
-                  "Next": "NotifySlack"
+                  "Next": "Notify"
                 }
               ]
             },
@@ -518,7 +494,7 @@ Resources:
               "ResultPath": "$",
               "Next": "CheckStatusBranch"
             },
-            "NotifySlackBranch": {
+            "NotifyBranch": {
               "Type": "Choice",
               "Choices": [{
                   "Or": [{
@@ -579,10 +555,10 @@ Resources:
                 }
               ]
             },
-            "NotifySlack": {
+            "Notify": {
               "Type": "Task",
-              "Resource": "${NotifySlackFunction.Arn}",
-              "Next": "NotifySlackBranch"
+              "Resource": "${NotifyFunction.Arn}",
+              "Next": "NotifyBranch"
             },
             "JobCompleted": {
               "Type": "Pass",
@@ -594,19 +570,14 @@ Resources:
             "DeployModel": {
               "Type": "Task",
               "Resource": "${DeployModelFunction.Arn}",
-              "Next": "NotifySlack"
+              "Next": "Notify"
             },
             "DeploymentCompleted": {
-              "Type": "Pass",
-              "Next": "UpdateParameters"
+              "Type": "Succeed",
+              "End": true
             },
             "DeploymentFailed": {
               "Type": "Fail"
-            },
-            "UpdateParameters": {
-              "Type": "Task",
-              "Resource": "${UpdateParametersFunction.Arn}",
-              "End": true
             }
           }
         }
@@ -633,14 +604,6 @@ Resources:
                   - "lambda:InvokeFunction"
                 Resource: "*"
 
-  SSMParameter:
-    Type: "AWS::SSM::Parameter"
-    Properties: 
-      Name: !Sub '/models/${ModelPrefix}/train/latest'
-      Description: Stores the date of latest training data model was run on.
-      Type: String
-      Value: 0
-
   GetStatusFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -657,22 +620,6 @@ Resources:
                 - "sagemaker:DescribeEndpoint"
                 - "sagemaker:DescribeTrainingJob"
               Resource: "*"
-
-  UpdateParametersFunction:
-    Type: 'AWS::Serverless::Function'
-    Properties:
-      Handler: update_parameters.lambda_handler
-      Runtime: python3.6
-      CodeUri: ../lambda_functions/
-      Description: 'Updates SSM Parameter Store parameter to reflect date of latest data file trained on.'
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - Version: "2012-10-17"
-          Statement:
-            - Effect: "Allow"
-              Action:
-                - "ssm:PutParameter"
-              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SSMParameter}'
 
   DeployModelFunction:
     Type: 'AWS::Serverless::Function'
@@ -714,7 +661,11 @@ Resources:
         Variables:
           SAGEMAKER_ROLE: !Ref SageMakerExecutionRole
           TRAINING_INSTANCE_TYPE: !Ref TrainingInstanceType
-          CONTAINER: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}:train
+          CONTAINER: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}
+          TAG: 'keras-gpu'
+          MODEL_PREFIX: !Ref ModelPrefix
+          OUTPUT_PATH: !Sub s3://${S3Bucket}/models/${ModelPrefix}/
+          S3_URI: !Ref S3Bucket
       Policies:
         - AWSLambdaBasicExecutionRole
         - Version: "2012-10-17"
@@ -728,33 +679,35 @@ Resources:
                 - "iam:PassRole"
               Resource: !Ref SageMakerExecutionRole
 
-  NotifySlackFunction:
+  NotifyFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Handler: notify_slack.lambda_handler
+      Handler: notify.lambda_handler
       Runtime: python3.6
       CodeUri: ../lambda_functions/
-      Description: 'Posts message to Slack channel'
-#      Environment:
-#        Variables:
-#          ENABLED: !Ref EnableSlack
-#          ACCESS_TOKEN: !Ref SlackAccessToken
-#          CHANNEL: !Ref SlackChannel
-      Policies:
-        - AWSLambdaBasicExecutionRole
-
-  CheckDataFunction:
-    Type: 'AWS::Serverless::Function'
-    Properties:
-      Handler: check_data.lambda_handler
-      Runtime: python3.6
-      CodeUri: ../lambda_functions/
-      Description: 'Checks to see if new training data has been uploaded since last training job and adds data found in training interval to training manifest'
-      Timeout: 10
+      Description: 'Posts message to SNS'
       Environment:
         Variables:
-          BUCKET: !Ref BucketName
-          INTERVAL: !Ref TrainingInterval
+          SNS: !Ref SNSTopic
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action:
+                - "sns:Publish"
+              Resource: !Ref SNSTopic
+
+  ExecuteStatMachineFunction:
+    Type:
+    Properties:
+      Handler: start_statemachine.lambda_handler
+      Runtime: python3.6
+      CodeUri: ../lambda_functions/
+      Description: 'Start StateMachine Execution for SageMaker model'
+      Environment:
+        Variables:
+          SFN_ARN: !Ref SageMakerStateMachine.Arn
           MODEL_PREFIX: !Ref ModelPrefix
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -762,13 +715,8 @@ Resources:
           Statement:
             - Effect: "Allow"
               Action:
-                - "s3:PutObject"
-                - "s3:GetObject"
-              Resource: !Sub 'arn:aws:s3:::${BucketName}/*'
-            - Effect: "Allow"
-              Action:
-                - "ssm:GetParameter"
-              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SSMParameter}'
+                - "states:StartExecution"
+              Resourece: "*"
 
 Outputs:
   S3BucketName:
