@@ -1,4 +1,4 @@
-# RoboStig - Leveraging Amazon SageMaker to build an Autonomous Self-driving Car
+# Leveraging Amazon SageMaker to build an Autonomous Self-driving Car
 
 ### Table of Contents
 
