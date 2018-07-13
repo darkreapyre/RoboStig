@@ -18,15 +18,15 @@ We'll start by creating a SageMaker notebook instance, which we will use for the
 
 3. To create a new notebook instance, go to **Notebook instances**, and click the **Create notebook instance** button at the top of the browser window.
 
-![Notebook Instance](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/create.jpg)
+![Notebook Instance](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/images/1/create.jpg)
 
 4. Enter *RoboStig* into the **Notebook instance name** text box, and select *ml.t2.xlarge* for the **Notebook instance type**.
 
-![Notebook Settings](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/settings.jpg)
+![Notebook Settings](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/images/1/settings.jpg)
 
 5. For IAM role, choose **Create a new role**, and in the resulting pop-up modal, select **Any S3 bucket** under **S3 Buckets you specify – optional**. Click **Create role**.
 
-![Bucket Access](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/bucket.jpg)
+![Bucket Access](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/images/1/bucket.jpg)
 
 6. You will be taken back to the Create Notebook instance page.  Click **Create notebook instance**.
 
@@ -34,17 +34,17 @@ We'll start by creating a SageMaker notebook instance, which we will use for the
 
 1. Wait for the server status to change to **InService**. This will take several minutes, possibly up to ten but likely less.
 
-![Access Notebook](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/open.jpg)
+![Access Notebook](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/images/1/open.jpg)
 
 2. Click **Open**. You will now see the Jupyter homepage for your notebook instance.
 
-![Open Notebook](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/start.jpg)
+![Open Notebook](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/images/1/start.jpg)
 
 ## Starting the Module
 
 1. In the upper-right corner of the Jupyter Notebook, click the **New** button and select **Terminal**.
 
-![Terminal](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/1/terminal.jpg)
+![Terminal](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/images/1/terminal.jpg)
 
 2. After the new terminal opens, download the workshop content by running the following commands:
 
