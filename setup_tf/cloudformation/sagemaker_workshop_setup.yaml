@@ -64,6 +64,28 @@ Resources:
     Properties: 
       BucketName: !Sub ${BucketName}-${AWS::AccountId}-${AWS::Region}
 
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:List*'
+              - 's3:Get*'
+            Effect: Allow
+            Principal: '*'
+            Resource:
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref S3Bucket
+                  - /*
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref S3Bucket
+
   ArtifactBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Delete
@@ -573,8 +595,7 @@ Resources:
               "Next": "Notify"
             },
             "DeploymentCompleted": {
-              "Type": "Succeed",
-              "End": true
+              "Type": "Succeed"
             },
             "DeploymentFailed": {
               "Type": "Fail"
@@ -719,10 +740,18 @@ Resources:
               Resourece: "*"
 
 Outputs:
-  S3BucketName:
-    Description: S3 bucket that will hold training data and model artifacts.
-    Value: !Ref BucketName
+  TrainingDataDownload:
+    Description: Link to the .zip file for Module 1 Training Data.
+    Value: !Sub https://s3-${AWS::Region}.amazonaws.com/${S3Bucket}/data/data.zip
+
+  TrainingDataBucket:
+    Description: Link to the S3 Bucket containing the Module 4 Training Data.
+    Value: !Sub https://s3-${AWS::Region}.amazonaws.com/${S3Bucket}/data/
   
-  Repository:
-    Description: ECR Repository for SageMaker custom training and serving containers.
-    Value: !Ref Repository
+  GPU_Image:
+    Description: ECR Image for Module 4 GPU-based Model Training.
+    Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}:keras-gpu
+  
+  CPU_Image:
+    Description: ECR Image for Module 4 CPU-based Model Hosting.
+    Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}:keras-cpu
