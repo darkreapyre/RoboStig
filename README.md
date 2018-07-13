@@ -1,4 +1,4 @@
-# Leveraging Amazon SageMaker to build an Autonomous Self-driving Car
+# Leveraging Amazon SageMaker to build an Autonomous Vehicle
 
 ### Table of Contents
 
