@@ -1,6 +1,6 @@
-# Leveraging Amazon SageMaker to build an Autonomous Vehicle
+# Leveraging Amazon SageMaker for Autonomous Vehicle Behavioral Cloning
 
-### Table of Contents
+## Table of Contents
 
 1. [Overview](#overview)
 2. [Prerequisites](#prerequisites)
