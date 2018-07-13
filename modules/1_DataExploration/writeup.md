@@ -97,7 +97,7 @@ def resize(image, height, width):
 
 <MARKDOWN CELL>
 
-<details><summary><b>Solution (Click expand)</b></summary><p>
+<details><summary><b>Solution (Click to expand)</b></summary><p>
 
 ```
 # Image Transformation: Resize
