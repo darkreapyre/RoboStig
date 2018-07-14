@@ -6,7 +6,7 @@ Description: >
   (See the "README.md" file for instructions).
 
 Parameters:
-    GitHubUser:
+  GitHubUser:
     Type: String
     Description: GitHub username.
   GitHubRepo:
@@ -141,15 +141,17 @@ Resources:
   CodeBuildServiceRole:
     Type: AWS::IAM::Role
     Properties:
-     Path: /
-      AssumeRolePolicyDocument: |
-        {
-            "Statement": [{
-                "Effect": "Allow",
-                "Principal": { "Service": [ "codebuild.amazonaws.com" ]},
-                "Action": [ "sts:AssumeRole" ]
-            }]
-        }
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: "2012-1017"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "codebuild.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
       Policies:
         - PolicyName: root
           PolicyDocument:
