@@ -1,11 +1,11 @@
 [
   {
     "ParameterKey": "GitHubUser",
-    "ParameterValue": "darkreapyre"
+    "ParameterValue": "<<Enter the GitHub User Account>>"
   }, 
   {
     "ParameterKey": "GitHubRepo",
-    "ParameterValue": "RoboStig"
+    "ParameterValue": "<<Enter the GitHub Repository>>"
   },
   {
     "ParameterKey": "GitHubBranch",
@@ -13,7 +13,7 @@
   },
   {
     "ParameterKey": "GitHubToken",
-    "ParameterValue": "9f6e72cf94a7551cb8f7b7ef29b060eab858d043"
+    "ParameterValue": "<<Enter the GitHub Token for your GitHub Repository>>"
   },
   {
     "ParameterKey": "TrainingInstanceType",
@@ -37,6 +37,6 @@
   },
   {
     "ParameterKey": "EmailAddress",
-    "ParameterValue": "darkreapyre@gmail.com"
+    "ParameterValue": "<<Enter Status Update e-mail address>>"
   }
 ]

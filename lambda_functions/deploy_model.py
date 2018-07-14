@@ -14,16 +14,16 @@ def lambda_handler(event, context):
     endpoint = event['endpoint']
     model_data_url = event['model_data_url']
     container = event['container']
-    print('Creating model resource from training artifact...')
+    print('Creating model resource from training artifact ...')
     create_model(name, container, model_data_url)
-    print('Creating endpoint configuration...')
+    print('Creating endpoint configuration ...')
     create_endpoint_config(name)
-    print('Checking if model endpoint already exists...')
+    print('Checking if model endpoint already exists ...')
     if check_endpoint_exists(endpoint):
-        print('Existing endpoint found for model. Updating existing model endpoint...')
+        print('Existing endpoint found for model. Updating existing model endpoint ...')
         update_endpoint(endpoint, name)
     else:
-        print('There is no existing endpoint for this model. Creating new model endpoint...')
+        print('There is no existing endpoint for this model. Creating new model endpoint ...')
         create_endpoint(endpoint, name)
     event['stage'] = 'Deployment'
     event['status'] = 'Creating'

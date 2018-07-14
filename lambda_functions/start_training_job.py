@@ -1,10 +1,6 @@
+from datetime import datetime
 import boto3
 import os
-
-# Customer Keras container
-#CONTAINER = {'us-west-2': '500842391574.dkr.ecr.us-west-2.amazonaws.com/pystig:train'}
-#REGION = boto3.session.Session().region_name
-#CONTAINER = {str(REGION): str(os.environ[CONTAINER])}
 
 # Instance type to train on
 TRAINING_INSTANCE_TYPE = os.environ['TRAINING_INSTANCE_TYPE']
@@ -12,24 +8,26 @@ TRAINING_INSTANCE_TYPE = os.environ['TRAINING_INSTANCE_TYPE']
 # Role to pass to SageMaker training job that has access to training data in S3, etc
 SAGEMAKER_ROLE = os.environ['SAGEMAKER_ROLE']
 
+# Get the container and tag for the training job
+CONTAINER = str(os.environ['CONTAINER']) + ':' + str(os.environ['TAG'])
+
 sagemaker = boto3.client('sagemaker')
 
 
 def lambda_handler(event, context):
-    time = event['time']
-    model_prefix = event['endpoint']
-    train_manifest_uri = event['train_manifest_uri']
-    container = os.environ[CONTAINER]
-#    container = CONTAINER[REGION]
-    s3_output_path = event['s3_output_path']
-    name = '{}-{}'.format(model_prefix, time).replace(':', '-')
-    print('Starting training job...')
+    time = str(datetime.now()).split(' ')[0]
+    model_prefix = os.environ['MODEL_PREFIX']
+    train_manifest_uri = os.environ['S3_URI']
+    container = CONTAINER
+    s3_output_path = os.environ['OUTPUT_PATH']
+    name = '{}-{}'.format(model_prefix, time)
+    print('Starting training job ...')
     create_training_job(name, train_manifest_uri, container, s3_output_path)
     event['name'] = name
     event['container'] = container
     event['stage'] = 'Training'
     event['status'] = 'InProgress'
-    event['message'] = 'Starting training job "{}"'.format(name)
+    event['message'] = 'Started training job "{}"'.format(name)
     return event
 
 
@@ -47,8 +45,8 @@ def create_training_job(name, train_manifest_uri, container, s3_output_path):
         response = sagemaker.create_training_job(
             TrainingJobName=name,
             HyperParameters={
-                'batch_size': '16',
-                'epochs': '10',
+                'batch_size': '32',
+                'epochs': '12',
                 'learning_rate': '0.0001'
             },
             AlgorithmSpecification={
@@ -61,7 +59,7 @@ def create_training_job(name, train_manifest_uri, container, s3_output_path):
                     'ChannelName': 'train',
                     'DataSource': {
                         'S3DataSource': {
-                            'S3DataType': 'ManifestFile',
+                            'S3DataType': 'S3Prefix',
                             'S3Uri': train_manifest_uri,
                             'S3DataDistributionType': 'FullyReplicated'
                         }
