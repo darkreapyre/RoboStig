@@ -68,7 +68,7 @@ def create_endpoint_config(name):
             EndpointConfigName=name,
             ProductionVariants=[
                 {
-                    'VariantName': 'prod',
+                    'VariantName': 'demo',
                     'ModelName': name,
                     'InitialInstanceCount': 1,
                     'InstanceType': INSTANCE_TYPE
