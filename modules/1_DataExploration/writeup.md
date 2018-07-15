@@ -220,13 +220,8 @@ def brightness(image):
 </p>
 </details>
 
-</MARKDOW _CELL>
-
----
-
----
-
 ## Augmented Image Examples
+
 
 ```text
 |--data
@@ -236,6 +231,11 @@ def brightness(image):
 |  |  |--left_2016_12_01_13_30_48_287.jpg
 |  |  ...
 ```
+
+
+
+
+</MARKDOW_CELL>
 
 ---
 
