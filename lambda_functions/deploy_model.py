@@ -5,7 +5,10 @@ import os
 EXECUTION_ROLE = os.environ['EXECUTION_ROLE']
 
 # Instance type to deploy trained model to
-INSTANCE_TYPE = os.environ['INSTANCE_TYPE'] 
+INSTANCE_TYPE = os.environ['INSTANCE_TYPE']
+
+# Switch to CPU container for model hosting
+CONTAINER = str(os.environ['CONTAINER']) + ':' + str(os.environ['TAG'])
 
 sagemaker = boto3.client('sagemaker')
 
@@ -13,7 +16,7 @@ def lambda_handler(event, context):
     name = event['name']
     endpoint = event['endpoint']
     model_data_url = event['model_data_url']
-    container = event['container']
+    container = CONTAINER
     print('Creating model resource from training artifact ...')
     create_model(name, container, model_data_url)
     print('Creating endpoint configuration ...')

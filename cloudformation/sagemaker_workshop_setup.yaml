@@ -2,8 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   This template can be used to deploy the Behavioral Cloning with SageMaker Workshop.
-  Please update the "parameters.json" file before launching the template
-  (See the "README.md" file for instructions).
+  Please see the "README.md" file for instructions.
 
 Parameters:
   GitHubUser:
@@ -26,7 +25,7 @@ Parameters:
   TrainingInstanceType:
     Description: Instance type to launch trained production model endpoint with. 
     Type: String
-    Default: ml.p3.2xlarge
+    Default: ml.p3.8xlarge
   ProductionInstanceType:
     Description: Instance type to launch trained production model endpoint with. 
     Type: String
@@ -36,15 +35,16 @@ Parameters:
     Type: String
     NoEcho: true
   ModelPrefix: 
-    Description: Prefix to prepend to resources created for the model.
+    Description: Prefix to prepend to resources created for the model (Must be lower-case).
     Type: String
-    Default: pyStig
-  BucketName:
-    Description: Name to create S3 bucket that will hold training data and model artifacts with. Must contain 'sagemaker' in name.
-    Type: String
-    Default: sagemaker-workshop
+    Default: pystig
+    AllowedPattern: "[a-z]*"
   EmailAddress:
     Description: E-Mail Address to send deployment updates to.
+    Type: String
+  S3Bucket:
+    Description: >
+      Name of the S3 Bucket for deployment and training asets, e.g. sagemaker-workshop-<<ACCOUNT ID>>-us-west-2
     Type: String
 
 Resources:
@@ -52,43 +52,16 @@ Resources:
     Type: AWS::SNS::Topic
     Description: Deployment status messages.
     Properties:
-      DisplayName: SageMaker WorkShop Deployed
+      DisplayName: SageMaker WorkShop Status
       Subscription:
         - Endpoint: !Ref EmailAddress
           Protocol: email
       TopicName: !Sub ${AWS::StackName}-SNS
 
-  S3Bucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Delete
-    Properties: 
-      BucketName: !Sub ${BucketName}-${AWS::AccountId}-${AWS::Region}
-
-  S3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref S3Bucket
-      PolicyDocument:
-        Statement:
-          - Action:
-              - 's3:List*'
-              - 's3:Get*'
-            Effect: Allow
-            Principal: '*'
-            Resource:
-              - !Join 
-                - ''
-                - - 'arn:aws:s3:::'
-                  - !Ref S3Bucket
-                  - /*
-              - !Join 
-                - ''
-                - - 'arn:aws:s3:::'
-                  - !Ref S3Bucket
-
   ArtifactBucket:
     Type: AWS::S3::Bucket
-    DeletionPolicy: Delete
+    DeletionPolicy: Retain
+    Description: CodePipeline Artifacts.
 
   Repository:
     Type: AWS::ECR::Repository
@@ -107,43 +80,12 @@ Resources:
               - ecr:BatchGetImage
               - ecr:BatchCheckLayerAvailability
 
-## Determine if this is needed
-#  CloudFormationExecutionRole:
-#    Type: AWS::IAM::Role
-#    DeletionPolicy: Retain
-#    Properties:
-#      #RoleName: !Sub cfn-${AWS::StackName}
-#      Path: /
-#      AssumeRolePolicyDocument: |
-#        {
-#            "Statement": [{
-#                "Effect": "Allow",
-#                "Principal": { "Service": [ "cloudformation.amazonaws.com" ]},
-#                "Action": [ "sts:AssumeRole" ]
-#            }]
-#        }
-#      Policies:
-#        - PolicyName: root
-#          PolicyDocument:
-#            Version: 2012-10-17
-#            Statement:
-#              - Resource: "*"
-#                Effect: Allow
-#                Action:
-#                  - ecs:*
-#                  - ecr:*
-#                  - iam:*
-#                  - ec2:*
-#                  - elasticloadbalancing:*
-#                  - autoscaling:*
-#                  - logs:*
-
   CodeBuildServiceRole:
     Type: AWS::IAM::Role
     Properties:
       Path: /
       AssumeRolePolicyDocument:
-        Version: "2012-1017"
+        Version: "2012-10-17"
         Statement:
           -
             Effect: "Allow"
@@ -164,7 +106,6 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                   - ecr:GetAuthorizationToken
-#                  - cloudformation:Describe*
                   - codepipeline:Get*
                   - codebuild:BatchGetBuilds
               - Resource: !Sub arn:aws:s3:::${ArtifactBucket}/*
@@ -173,6 +114,12 @@ Resources:
                   - s3:GetObject
                   - s3:PutObject
                   - s3:GetObjectVersion
+              - Resource:
+                  - !Sub arn:aws:s3:::${S3Bucket}/*
+                  - !Sub arn:aws:s3:::${S3Bucket}
+                Effect: Allow
+                Action:
+                  - s3:*
               - Resource: !Sub arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${Repository}
                 Effect: Allow
                 Action:
@@ -217,10 +164,8 @@ Resources:
                 Action:
                   - codebuild:StartBuild
                   - codebuild:BatchGetBuilds
-#                  - cloudformation:*
                   - lambda:*
                   - iam:PassRole
-#                  - sns:Publish
 
   TrainContainerBuildProject:
     Type: AWS::CodeBuild::Project
@@ -245,7 +190,7 @@ Resources:
                 - $(aws ecr get-login --no-include-email)
             build:
               commands:
-                - docker build -t "$(cat /tmp/build_tag.out)" -f Dockerfile.train .
+                - docker build -t "$(cat /tmp/build_tag.out)" -f Dockerfile.gpu .
             post_build:
               commands:
                 - docker push "$(cat /tmp/build_tag.out)"
@@ -261,7 +206,7 @@ Resources:
             Value: !Ref AWS::Region
           - Name: REPOSITORY_URI
             Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}
-      Name: train-container build
+      Name: train-container-build
       ServiceRole: !Ref CodeBuildServiceRole
 
   ServeContainerBuildProject:
@@ -287,7 +232,7 @@ Resources:
                 - $(aws ecr get-login --no-include-email)
             build:
               commands:
-                - docker build -t "$(cat /tmp/build_tag.out)" -f Dockerfile.serve .
+                - docker build -t "$(cat /tmp/build_tag.out)" -f Dockerfile.cpu .
             post_build:
               commands:
                 - docker push "$(cat /tmp/build_tag.out)"
@@ -325,13 +270,10 @@ Resources:
               commands:
                 - printenv
                 - wget $DATA_SOURCE
-                - aws s3 cp ./data.zip s3://$S3_BUCKET/data --acl public-read
+                - aws s3 cp ./data.zip s3://$S3_BUCKET/data/data.zip --acl public-read
                 - unzip ./data.zip
                 - rm -rf __*
                 - aws s3 cp --recursive  ./data s3://$S3_BUCKET/data --acl public-read
-#          artifacts:
-#            files: cf_inputs.json
-#            discard-paths: yes
       Environment:
         ComputeType: "BUILD_GENERAL1_SMALL"
         Image: aws/codebuild/python:2.7.12
@@ -387,7 +329,7 @@ Resources:
               RunOrder: 1
             - Name: ServeBuild
               ActionTypeId:
-                Catagory: Build
+                Category: Build
                 Owner: AWS
                 Version: 1
                 Provider: CodeBuild
@@ -420,35 +362,8 @@ Resources:
                 Version: 1
                 Provider: Lambda
               Configuration:
-                FunctionName: ! ExecuteStateMachineFunction
+                FunctionName: !Ref ExecuteStateMachineFunction
               RunOrder: 1
-
-#  ExecuteStateMachineRole:
-#    Type: "AWS::IAM::Role"
-#    Properties:
-#      AssumeRolePolicyDocument:
-#        Version: "2012-10-17"
-#        Statement:
-#          -
-#            Sid: "AllowCWEServiceToAssumeRole"
-#            Effect: "Allow"
-#            Action:
-#              - "sts:AssumeRole"
-#            Principal:
-#              Service:
-#                - "events.amazonaws.com"
-#      Path: "/"
-#      Policies:
-#        -
-#          PolicyName: "ExecuteStateMachine"
-#          PolicyDocument:
-#            Version: "2012-10-17"
-#            Statement:
-#              -
-#                Effect: "Allow"
-#                Action:
-#                  - "states:StartExecution"
-#                Resource: "*"
 
   SageMakerStateMachine:
     Type: AWS::StepFunctions::StateMachine
@@ -656,6 +571,8 @@ Resources:
         Variables:
           EXECUTION_ROLE: !Ref SageMakerExecutionRole
           INSTANCE_TYPE: !Ref ProductionInstanceType
+          CONTAINER: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}
+          TAG: 'keras-cpu'
       Policies:
         - AWSLambdaBasicExecutionRole
         - Version: "2012-10-17"
@@ -688,7 +605,7 @@ Resources:
           TAG: 'keras-gpu'
           MODEL_PREFIX: !Ref ModelPrefix
           OUTPUT_PATH: !Sub s3://${S3Bucket}/models/${ModelPrefix}/
-          S3_URI: !Ref S3Bucket
+          S3_URI: !Sub s3://${S3Bucket}
       Policies:
         - AWSLambdaBasicExecutionRole
         - Version: "2012-10-17"
@@ -721,16 +638,16 @@ Resources:
                 - "sns:Publish"
               Resource: !Ref SNSTopic
 
-  ExecuteStatMachineFunction:
-    Type:
+  ExecuteStateMachineFunction:
+    Type: 'AWS::Serverless::Function'
     Properties:
       Handler: start_statemachine.lambda_handler
       Runtime: python3.6
       CodeUri: ../lambda_functions/
-      Description: 'Start StateMachine Execution for SageMaker model'
+      Description: 'Trigger Step Function'
       Environment:
         Variables:
-          SFN_ARN: !Ref SageMakerStateMachine.Arn
+          SFN_ARN: !Ref SageMakerStateMachine
           MODEL_PREFIX: !Ref ModelPrefix
       Policies:
         - AWSLambdaBasicExecutionRole
@@ -738,11 +655,17 @@ Resources:
           Statement:
             - Effect: "Allow"
               Action:
-                - "states:StartExecution"
-              Resourece: "*"
+                - "states:*"
+                - "codepipeline:PutJobSuccessResult"
+                - "codepipeline:PutJobFailureResult"
+              Resource: "*"
 
 Outputs:
-  TrainingDataDownload:
+  CodePipelineURL:
+    Description: Link to CodePipeline
+    Value: !Sub https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/${Pipeline}
+
+  TrainingDataDownloadURL:
     Description: Link to the .zip file for Module 1 Training Data.
     Value: !Sub https://s3-${AWS::Region}.amazonaws.com/${S3Bucket}/data/data.zip
 
@@ -750,10 +673,10 @@ Outputs:
     Description: Link to the S3 Bucket containing the Module 4 Training Data.
     Value: !Sub https://s3-${AWS::Region}.amazonaws.com/${S3Bucket}/data/
   
-  GPU_Image:
+  ModelTrainingImage:
     Description: ECR Image for Module 4 GPU-based Model Training.
     Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}:keras-gpu
   
-  CPU_Image:
+  ModelServingImage:
     Description: ECR Image for Module 4 CPU-based Model Hosting.
     Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}:keras-cpu

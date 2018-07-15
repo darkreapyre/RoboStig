@@ -26,6 +26,7 @@ from keras.optimizers import Adam
 from keras.callbacks import Callback, ModelCheckpoint
 from keras.layers.normalization import BatchNormalization
 from keras.regularizers import l2
+from keras.utils import multi_gpu_model
 from sklearn.model_selection import train_test_split
 import os, shutil, random, json, glob, cv2, sys, traceback
 import numpy as np
@@ -47,6 +48,7 @@ print('creating SageMaker trainer environment:\n%s' % str(env))
 batch_size = env.hyperparameters.get('batch_size', default=16, object_type=int)
 learning_rate = env.hyperparameters.get('learning_rate', default=.001, object_type=float)
 EPOCHS = env.hyperparameters.get('epochs', default=10, object_type=int)
+gpu_count = env.hyperparameters.get('gpu_count', default=0, object_type=int)
 
 # Helper functions for Image Augmentation
 def load_image(data_dir, image_file):
@@ -274,6 +276,8 @@ def train():
     )
 
     # Compile model
+    if gpu_count > 1:
+        model = multi_gpu_model(model, gpus=gpu_count)
     model.compile(loss='mean_squared_error', optimizer=Adam(lr=learning_rate))
         
     # Fit the model

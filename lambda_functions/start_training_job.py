@@ -13,21 +13,29 @@ CONTAINER = str(os.environ['CONTAINER']) + ':' + str(os.environ['TAG'])
 
 sagemaker = boto3.client('sagemaker')
 
-
 def lambda_handler(event, context):
-    time = str(datetime.now()).split(' ')[0]
+    time_stamp = str(datetime.now()).split(' ')
+    date = time_stamp[0]
+    time = time_stamp[1].replace(':', '-').split('.')[0]
+    ID = time_stamp[1].split('.')[1][-3:]
+#    print('Start Time: {}'.format(time))
     model_prefix = os.environ['MODEL_PREFIX']
+#    print('Model Prefix: {}'.format(model_prefix))
     train_manifest_uri = os.environ['S3_URI']
+#    print('S3 URI: {}'.format(train_manifest_uri))
     container = CONTAINER
+#    print('Using Container: {}'.format(container))
     s3_output_path = os.environ['OUTPUT_PATH']
-    name = '{}-{}'.format(model_prefix, time)
-    print('Starting training job ...')
+#    print('Model Output Path: {}'.format(s3_output_path))
+    name = '{}-{}-{}-{}'.format(model_prefix, date, time, ID)
+    print('Starting {} training job ...'.format(name))
     create_training_job(name, train_manifest_uri, container, s3_output_path)
     event['name'] = name
     event['container'] = container
     event['stage'] = 'Training'
     event['status'] = 'InProgress'
     event['message'] = 'Started training job "{}"'.format(name)
+    event['endpoint'] = model_prefix
     return event
 
 
@@ -46,8 +54,9 @@ def create_training_job(name, train_manifest_uri, container, s3_output_path):
             TrainingJobName=name,
             HyperParameters={
                 'batch_size': '32',
-                'epochs': '12',
-                'learning_rate': '0.0001'
+                'epochs': '25',
+                'learning_rate': '0.0001',
+                'gpu_count': '4'
             },
             AlgorithmSpecification={
                 'TrainingImage': container,

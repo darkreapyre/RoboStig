@@ -2,11 +2,11 @@ import os
 import boto3
 
 SNS_TOPIC = os.environ['SNS']
-
-sns = client('sns')
+sns = boto3.client('sns')
 
 def lambda_handler(event, context):
     message = event['message']
+    print('Message: '+message)
     post_message(message)
     return event
 
