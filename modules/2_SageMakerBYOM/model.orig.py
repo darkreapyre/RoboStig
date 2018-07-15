@@ -31,10 +31,10 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
         kvstore = 'dist_device_sync' if num_gpus > 0 else 'dist_sync'
     
     # Load hyperparameters
-    epochs = hyperparameters.get('epochs', 11)
+    epochs = hyperparameters.get('epochs', 12)
     optmizer = hyperparameters.get('optmizer', 'adam')
-    lr = hyperparameters.get('learning_rate', 1.0e-4)
-    batch_size = hyperparameters.get('batch_size', 64)
+    lr = hyperparameters.get('learning_rate', 0.1)
+    batch_size = hyperparameters.get('batch_size', 16)
     
     # Load Training/Testing Data
     f_path = channel_input_dirs['training']
