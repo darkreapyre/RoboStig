@@ -93,7 +93,7 @@ def build_model():
     """
     net = gluon.nn.Sequential()
     with net.name_scope():
-        net.add(gluon.nn.Lambda(lambda x: x/127.5-1.0)) #Normalization
+        net.add(gluon.nn.Lambda(lambda x: x / 255)) #Normalization
         net.add(gluon.nn.Conv2D(channels=24, kernel_size=(5, 5), strides=(2, 2), padding=1, activation='relu'))
         net.add(gluon.nn.Conv2D(channels=36, kernel_size=(5, 5), strides=(2, 2), padding=1, activation='relu'))
         net.add(gluon.nn.Conv2D(channels=48, kernel_size=(5, 5), strides=(2, 2), padding=1, activation='relu'))
