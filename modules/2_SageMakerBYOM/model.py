@@ -72,7 +72,6 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
     
     # Train the model
     for epoch in range(epochs):
-        curr_loss = 0
         for i, (data, label) in enumerate(train_data):
             data = data.as_in_context(ctx)
             label = label.as_in_context(ctx)
@@ -81,12 +80,9 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
                 loss = square_loss(output, label)
             loss.backward()
             trainer.step(data.shape[0])
-            curr_loss += nd.mean(loss).asscalar()
-        val_accuracy = accuracy(test_data, net, ctx)
-        train_accuracy = accuracy(train_data, net, ctx)
-        print("Epoch {}: Loss: {}; Training Accuracy = {}; Validation Accuracy = {}"\
-              .format(epoch, curr_loss/len(train_data), train_accuracy, val_accuracy)
-             )
+        val_loss = evaluate(test_data, net, ctx)
+        train_loss = evaluate(train_data, net, ctx)
+        print("Epoch {}: loss: {} - val_loss: {}".format(epoch, train_loss, val_loss))
 
     # Return the model for saving
     return net
@@ -164,7 +160,7 @@ def save(net, model_dir):
     y.save('%s/model.json' % model_dir)
     net.collect_params().save('%s/model.params' % model_dir)
 
-def accuracy(data_iterator, net, ctx):
+def evaluate(data_iterator, net, ctx):
     """
     Evaluates the Accuracy of the model against the Training or Testing iterator.
     
@@ -175,14 +171,13 @@ def accuracy(data_iterator, net, ctx):
     Returns:
     Accuracy of the model against the data iterator.
     """
-    acc = mx.metric.Accuracy()
+    metric = mx.metric.MSE()
     for i, (data, label) in enumerate(data_iterator):
         data = data.as_in_context(ctx)
         label = label.as_in_context(ctx)
         output = net(data)
-        predictions = nd.argmax(output, axis=1)
-        acc.update(preds=predictions, labels=label)
-    return acc.get()[1]
+        metric.update(preds=output, labels=label)
+    return metric.get()[1]
 
 # ---------------------------------------------------------------------------- #
 #                           Hosting functions                                  #
