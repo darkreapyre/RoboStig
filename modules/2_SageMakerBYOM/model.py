@@ -72,6 +72,7 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
     
     # Train the model
     for epoch in range(epochs):
+        metric = mx.metric.MSE()
         for i, (data, label) in enumerate(train_data):
             data = data.as_in_context(ctx)
             label = label.as_in_context(ctx)
@@ -80,8 +81,9 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
                 loss = square_loss(output, label)
             loss.backward()
             trainer.step(data.shape[0])
-        val_loss = evaluate(test_data, net, ctx)
-        train_loss = evaluate(train_data, net, ctx)
+        val_loss = evaluate(test_data, net, metric, ctx)
+        train_loss = evaluate(train_data, net, metric, ctx)
+        metric.reset()
         print("Epoch {}: loss: {} - val_loss: {}".format(epoch, train_loss, val_loss))
 
     # Return the model for saving
@@ -160,7 +162,7 @@ def save(net, model_dir):
     y.save('%s/model.json' % model_dir)
     net.collect_params().save('%s/model.params' % model_dir)
 
-def evaluate(data_iterator, net, ctx):
+def evaluate(data_iterator, net, metric, ctx):
     """
     Evaluates the Accuracy of the model against the Training or Testing iterator.
     
@@ -171,7 +173,6 @@ def evaluate(data_iterator, net, ctx):
     Returns:
     Accuracy of the model against the data iterator.
     """
-    metric = mx.metric.MSE()
     for i, (data, label) in enumerate(data_iterator):
         data = data.as_in_context(ctx)
         label = label.as_in_context(ctx)

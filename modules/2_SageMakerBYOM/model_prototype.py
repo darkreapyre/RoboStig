@@ -169,7 +169,7 @@ def evaluate(data_iterator, net, ctx):
     net -- Gluon Model.
     
     Returns:
-    Accuracy of the model against the data iterator.
+    Mean Squared Error Loss for `data_iterator`.
     """
     metric = mx.metric.MSE()
     for i, (data, label) in enumerate(data_iterator):
