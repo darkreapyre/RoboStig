@@ -71,6 +71,7 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
     square_loss = gluon.loss.L2Loss()
     
     # Train the model
+    best_loss = 0.0
     for epoch in range(epochs):
         for i, (data, label) in enumerate(train_data):
             data = data.as_in_context(ctx)
@@ -83,6 +84,9 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
         val_loss = evaluate(test_data, net, ctx)
         train_loss = evaluate(train_data, net, ctx)
         print("Epoch {}: loss: {} - val_loss: {}".format(epoch, train_loss, val_loss))
+        if val_loss > best_loss:
+            net.save_params('{}/model-{:0>4}.params'.format(model_dir, epoch))
+            best_loss = val_loss
 
     # Return the model for saving
     return net
@@ -146,19 +150,29 @@ def load_data(f_path):
     test_X, test_Y = transform(test_x, test_y)
     return train_X, train_Y, test_X, test_Y
 
+#def save(net, model_dir):
+#    """
+#    Saves the trained model to S3.
+#    
+#    Arguments:
+#    model -- The model returned from the `train()` function.
+#    model_dir -- The model directory location to save the model.
+#    """
+#    print("Saving the trained model ...")
+#    y = net(mx.sym.var('data'))
+#    y.save('%s/model.json' % model_dir)
+#    net.collect_params().save('%s/model.params' % model_dir)
 
+##############################################################################
+#                         Test best epoch save                               #
+##############################################################################
 def save(net, model_dir):
-    """
-    Saves the trained model to S3.
-    
-    Arguments:
-    model -- The model returned from the `train()` function.
-    model_dir -- The model directory location to save the model.
-    """
-    print("Saving the trained model ...")
+    files = os.listdir(model_dir)
+    if files:
+        best = sorted(os.listdir(model_dir))[-1]
+        os.rename(os.path.join(model_dir, best), os.path.join(model_dir, 'model.params'))
     y = net(mx.sym.var('data'))
     y.save('%s/model.json' % model_dir)
-    net.collect_params().save('%s/model.params' % model_dir)
 
 def evaluate(data_iterator, net, ctx):
     """
