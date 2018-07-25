@@ -15,7 +15,7 @@ This IAM user will be used to demonstrate the self-driving vehicle driving not h
 
 ## Step 3: Create a default S3 bucket for the workshop.
 The Bucket will contain the lambda assets for the Step Function as well as the Training Data source `.zip` file for __Module 1__ and extracted source for __Module 4__.
-- Create the S3 Bucket called `sagemaker-workshop-<<AWS ACCOUNT ID>>-us-west-2 with the defaults.
+- Create the S3 Bucket called `sagemaker-workshop-<<AWS ACCOUNT ID>>-us-west-2` with the defaults.
 - Apply the following Bucket Policy:
 ```json
     {
@@ -53,17 +53,14 @@ At the end of the deployment, you should have the following:
 ### Create CloudFormation Package
 
 ```console
-    $ aws cloudformation package --region us-west-2 --s3-bucket sagemaker-workshop-722812380636-us-west-2 \
-    --template sagemaker_workshop_setup.yaml --output-template-file output.yaml
+    $ cd cloudformation
+    $ aws cloudformation package --region us-west-2 --s3-bucket sagemaker-workshop-722812380636-us-west-2 --template sagemaker_workshop_setup.yaml --output-template-file output.yaml
 ```
 
 ### Deploy CloudFormation Package
 
 ```console
-    $ aws cloudformation deploy --region us-west-2 --template-file output.yaml --stack-name SageMaker-Workshop \
-    --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubUser=<<GitHub User>> GitHubRepo=<<GitHub Repository>> \
-    GitHubBranch=setup GitHubToken=<<GitHub Token>> SageMakerExecutionRole=<<SAGEMAKER ROLE ARN>> \
-    EmailAddress=<<UPDATE E-MAIL ADDRESS>> S3Bucket=<<S3 Bucket>>
+    $ aws cloudformation deploy --region us-west-2 --template-file output.yaml --stack-name SageMaker-Workshop --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubUser=<<GitHub User>> GitHubRepo=<<GitHub Repository>> GitHubBranch=setup GitHubToken=<<GitHub Token>> SageMakerExecutionRole=<<SAGEMAKER ROLE ARN>> EmailAddress=<<UPDATE E-MAIL ADDRESS>> S3Bucket=<<S3 Bucket>>
 ```
 
 ### Cleanup

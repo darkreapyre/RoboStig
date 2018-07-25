@@ -30,8 +30,8 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
 
 # Install all of the packages
 RUN wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py
-RUN pip install \
-    numpy \
+RUN pip install --upgrade \
+#    numpy \
     h5py \
     scipy \
     scikit-learn \ 
