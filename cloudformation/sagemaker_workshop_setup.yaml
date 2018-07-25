@@ -282,7 +282,7 @@ Resources:
           - Name: AWS_DEFAULT_REGION
             Value: !Ref AWS::Region
           - Name: DATA_SOURCE
-            Value: "https://d17h27t6h515a5.cloudfront.net/topher/2016/December/584f6edd_data/data.zip"
+            Value: "https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/data/data.zip"
           - Name: S3_BUCKET
             Value: !Ref S3Bucket
       Name: training-data-upload
