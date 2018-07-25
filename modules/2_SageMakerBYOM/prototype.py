@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-#                          !!! TO BE DELETED !!!                               #
+#                   !!! TO BE DELETED  AFTER TESTING!!!                        #
 # ---------------------------------------------------------------------------- #
 
 # Import necessary libraries
@@ -20,7 +20,7 @@ logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.W
 # ---------------------------------------------------------------------------- #
 #                            Training functions                                #
 # ---------------------------------------------------------------------------- #
-def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir, **kwargs):
+def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir, model_dir, **kwargs):
     # Set the Context
     ctx = mx.gpu() if num_gpus > 0 else mx.cpu()
     
@@ -34,7 +34,7 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
     epochs = hyperparameters.get('epochs', 12)
     optmizer = hyperparameters.get('optmizer', 'adam')
     lr = hyperparameters.get('learning_rate', 0.1)
-    batch_size = hyperparameters.get('batch_size', 16)
+    batch_size = hyperparameters.get('batch_size', 256)
     
     # Load Training/Testing Data
     f_path = channel_input_dirs['training']
@@ -73,6 +73,7 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
     # Train the model
     best_loss = .9
     for epoch in range(epochs):
+        metric = mx.metric.MSE()
         for i, (data, label) in enumerate(train_data):
             data = data.as_in_context(ctx)
             label = label.as_in_context(ctx)
@@ -81,8 +82,9 @@ def train(channel_input_dirs, hyperparameters, hosts, num_gpus, output_data_dir,
                 loss = square_loss(output, label)
             loss.backward()
             trainer.step(data.shape[0])
-        val_loss = evaluate(test_data, net, ctx)
-        train_loss = evaluate(train_data, net, ctx)
+        val_loss = evaluate(test_data, net, metric, ctx)
+        train_loss = evaluate(train_data, net, metric, ctx)
+        metric.reset()
         print("Epoch {}: loss: {} - val_loss: {}".format(epoch, train_loss, val_loss))
         if val_loss < best_loss:
             net.save_params('{}/model-{:0>4}.params'.format(model_dir, epoch))
@@ -165,7 +167,7 @@ def save(net, model_dir):
     y = net(mx.sym.var('data'))
     y.save('%s/model.json' % model_dir)
 
-def evaluate(data_iterator, net, ctx):
+def evaluate(data_iterator, net, metric, ctx):
     """
     Evaluates the Accuracy of the model against the Training or Testing iterator.
     
@@ -176,7 +178,6 @@ def evaluate(data_iterator, net, ctx):
     Returns:
     Mean Squared Error Loss for `data_iterator`.
     """
-    metric = mx.metric.MSE()
     for i, (data, label) in enumerate(data_iterator):
         data = data.as_in_context(ctx)
         label = label.as_in_context(ctx)
