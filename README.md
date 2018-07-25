@@ -20,7 +20,9 @@ In this workshop, you will create your own __Stig (RoboStig)__  by way of a Mach
 
 In addition to using a [simulator](https://github.com/udacity/self-driving-car-sim) - developed by [Udacity](https://www.udacity.com/) - that captures the observation data, you will also leverage [Amazon SageMaker](https://aws.amazon.com/sagemaker) and construct a *Machine Learning Pipeline* to do the following:
 
-1. Explore and augment the training data.
+![Overview](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/images/0/Pipeline.jpg)
+
+1. Explore, Build and Augment the training data.
 2. Train and optimize your __RoboStig__ model with your own MXNet algorithm based on the __End-to-End Deep Learning for Self-Driving Cars__ paper from [NVIDIA](https://devblogs.nvidia.com/deep-learning-self-driving-cars/).
 3. Optimize your __RoboStig__ model using SageMaker Automatic Model Tuning.
 4. Demonstrate the flexibility of SageMaker by using the Keras framework to create your own __RoboStig__ estimator and inference engines.
