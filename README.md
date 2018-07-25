@@ -50,27 +50,20 @@ At the end of the deployment, you should have the following:
 2. ECR repo containing the GPU and CPU custom SageMaker estimator for the workshop users to leverage in Module 4.
 3. SageMaker inference endpoint for you to demonstrate the self-driving vehicle, as well as the workshop users to leverage if they are unable to complete any of the modules.
 
-### Prepare Parameters
-Update the [`parameters.json`](./cloudformation/parameters.json) with required information:
-- __TBD__
+### Create CloudFormation Package
 
 ```console
     $ aws cloudformation package --region us-west-2 --s3-bucket sagemaker-workshop-722812380636-us-west-2 \
-    --template sagemaker_workshop_setup.yaml --output-template-file <<NAME>>-output.yaml
+    --template sagemaker_workshop_setup.yaml --output-template-file output.yaml
 ```
+
+### Deploy CloudFormation Package
 
 ```console
     $ aws cloudformation deploy --region us-west-2 --template-file output.yaml --stack-name SageMaker-Workshop \
     --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubUser=<<GitHub User>> GitHubRepo=<<GitHub Repository>> \
     GitHubBranch=setup GitHubToken=<<GitHub Token>> SageMakerExecutionRole=<<SAGEMAKER ROLE ARN>> \
     EmailAddress=<<UPDATE E-MAIL ADDRESS>> S3Bucket=<<S3 Bucket>>
-```
-
-### Deploy
-- Execute the deployment:
-```console
-    $ cd cloudformation
-    $ aws cloudformation ... --parameters file:///./parameters.json
 ```
 
 ### Cleanup
