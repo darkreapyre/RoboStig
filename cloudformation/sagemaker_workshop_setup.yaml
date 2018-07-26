@@ -353,7 +353,7 @@ Resources:
               OutputArtifacts:
                 - Name: DataUploadOutput
               RunOrder: 1
-        - Name: Launch
+        - Name: TrainAndDeploy
           Actions:
             - Name: StartSateMachine
               ActionTypeId:
