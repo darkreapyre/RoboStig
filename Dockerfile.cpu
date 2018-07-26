@@ -39,7 +39,7 @@ RUN pip install \
 #    pandas \
     flask \
     gevent \
-#    gunicorn \
+    gunicorn \
     tensorflow \
 #    opencv-python \
 #    matplotlib \
