@@ -16,7 +16,6 @@ This IAM user will be used to demonstrate the self-driving vehicle driving not h
 ## Step 3: Create a default S3 bucket for the workshop.
 The Bucket will contain the lambda assets for the Step Function as well as the Training Data source `.zip` file for __Module 1__ and extracted source for __Module 4__.
 - Create the S3 Bucket called `sagemaker-workshop-<<AWS ACCOUNT ID>>-us-west-2` with the defaults and substitute <<AWS ACCOUNT ID>> with the account used to run the workshop.
-<!--
 - Apply the following Bucket Policy:
 ```json
     {
@@ -37,7 +36,6 @@ The Bucket will contain the lambda assets for the Step Function as well as the T
         ]
     }
 ```
--->
 
 ## Step 4: Configure the GitHub Repository.
 The repository will be the CodePipeline source for the training code and SageMaker containers.

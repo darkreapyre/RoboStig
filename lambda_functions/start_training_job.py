@@ -53,8 +53,8 @@ def create_training_job(name, train_manifest_uri, container, s3_output_path):
         response = sagemaker.create_training_job(
             TrainingJobName=name,
             HyperParameters={
-                'batch_size': '32',
-                'epochs': '12',
+                'batch_size': '16',
+                'epochs': '25',
                 'learning_rate': '0.0001',
                 'gpu_count': '4'
             },
