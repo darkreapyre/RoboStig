@@ -8,9 +8,6 @@ sfn_arn = os.environ['SFN_ARN']
 model_prefix = os.environ['MODEL_PREFIX']
 sfn = boto3.client('stepfunctions')
 pipeline = boto3.client('codepipeline')
-# Generate random ID for execution name
-#sfn_id = str(datetime.now()).split(' ')[1].split('.')[1]
-#name = model_prefix+'-'+sfn_id
 
 def put_job_success(job, message):
     """Notify CodePipeline of a successful job
@@ -45,6 +42,7 @@ def put_job_failure(job, message):
 def lambda_handler(event, context):
     # Extract CodePipeline Job ID
     job_id = event['CodePipeline.job']['id']
+    # Creating StateMachine based on job id
     name = model_prefix+'-'+str(job_id)
     try:
         sfn_response = sfn.start_execution(

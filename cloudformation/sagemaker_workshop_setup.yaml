@@ -65,7 +65,7 @@ Resources:
 
   Repository:
     Type: AWS::ECR::Repository
-    DeletionPolicy: Delete
+    DeletionPolicy: Retain
     Properties:
       RepositoryName: !Sub ${ModelPrefix}
       RepositoryPolicyText:
@@ -274,6 +274,7 @@ Resources:
                 - unzip ./data.zip
                 - rm -rf __*
                 - aws s3 cp --recursive  ./data s3://$S3_BUCKET/data --acl public-read
+                - aws s3api put-bucket-acl --bucket $S3_BUCKET --acl public-read
       Environment:
         ComputeType: "BUILD_GENERAL1_SMALL"
         Image: aws/codebuild/python:2.7.12
@@ -670,13 +671,13 @@ Outputs:
     Value: !Sub https://s3-${AWS::Region}.amazonaws.com/${S3Bucket}/data/data.zip
 
   TrainingDataBucket:
-    Description: Link to the S3 Bucket containing the Module 4 Training Data.
-    Value: !Sub https://s3-${AWS::Region}.amazonaws.com/${S3Bucket}/data/
+    Description: S3 Bucket containing the Module 4 Training Data --> data_bucket
+    Value: !Sub s3://${S3Bucket}
   
   ModelTrainingImage:
-    Description: ECR Image for Module 4 GPU-based Model Training.
+    Description: ECR Image for Module 4 --> training_image
     Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}:keras-gpu
   
   ModelServingImage:
-    Description: ECR Image for Module 4 CPU-based Model Hosting.
+    Description: ECR Image for Module 4 --> hosting_image
     Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}:keras-cpu

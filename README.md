@@ -15,7 +15,8 @@ This IAM user will be used to demonstrate the self-driving vehicle driving not h
 
 ## Step 3: Create a default S3 bucket for the workshop.
 The Bucket will contain the lambda assets for the Step Function as well as the Training Data source `.zip` file for __Module 1__ and extracted source for __Module 4__.
-- Create the S3 Bucket called `sagemaker-workshop-<<AWS ACCOUNT ID>>-us-west-2` with the defaults.
+- Create the S3 Bucket called `sagemaker-workshop-<<AWS ACCOUNT ID>>-us-west-2` with the defaults and substitute <<AWS ACCOUNT ID>> with the account used to run the workshop.
+<!--
 - Apply the following Bucket Policy:
 ```json
     {
@@ -24,8 +25,7 @@ The Bucket will contain the lambda assets for the Step Function as well as the T
         "Statement": [
             {
                 "Action": [
-                    "s3:Get*",
-                    "s3:List*"
+                    "s3:*"
                 ],
                 "Effect": "Allow",
                 "Resource": [
@@ -37,7 +37,7 @@ The Bucket will contain the lambda assets for the Step Function as well as the T
         ]
     }
 ```
->__Note:__ Substitute <<AWS ACCOUNT ID>> with the account used to run the workshop.
+-->
 
 ## Step 4: Configure the GitHub Repository.
 The repository will be the CodePipeline source for the training code and SageMaker containers.
@@ -54,7 +54,7 @@ At the end of the deployment, you should have the following:
 
 ```console
     $ cd cloudformation
-    $ aws cloudformation package --region us-west-2 --s3-bucket sagemaker-workshop-722812380636-us-west-2 --template sagemaker_workshop_setup.yaml --output-template-file output.yaml
+    $ aws cloudformation package --region us-west-2 --s3-bucket sagemaker-workshop-<<AWS ACCOUNT ID>>-us-west-2 --template sagemaker_workshop_setup.yaml --output-template-file output.yaml
 ```
 
 ### Deploy CloudFormation Package

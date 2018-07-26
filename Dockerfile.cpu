@@ -33,17 +33,17 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py
 RUN pip install \
     h5py \
     numpy==1.14.5 \
-#    scipy \
-#    scikit-learn \ 
-#    scikit-image \
-#    pandas \
+    scipy \
+    scikit-learn \ 
+    scikit-image \
+    pandas \
     flask \
     gevent \
     gunicorn \
     tensorflow \
-#    opencv-python \
-#    matplotlib \
-#    pillow \
+    opencv-python \
+    matplotlib \
+    pillow \
     keras
 
 RUN mkdir /root/.keras
