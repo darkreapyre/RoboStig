@@ -14,7 +14,7 @@
 # This is the file that implements a flask server to do inferences. It's the file that you will modify to
 # implement the scoring for your own algorithm.
 
-# Applied from https://github.com/awslabs/amazon-sagemaker-examples/tree/master/advanced_functionality/scikit_bring_your_own
+# Note: The following code has been applied from https://github.com/awslabs/amazon-sagemaker-examples/tree/master/advanced_functionality/scikit_bring_your_own
 # and https://github.com/awslabs/amazon-sagemaker-examples/tree/master/hyperparameter_tuning/keras_bring_your_own
 
 from __future__ import print_function

@@ -33,17 +33,17 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py
 RUN pip install \
     h5py \
     numpy==1.14.5 \
-    scipy \
-    scikit-learn \ 
-    scikit-image \
-    pandas \
+#    scipy \
+#    scikit-learn \ 
+#    scikit-image \
+#    pandas \
     flask \
     gevent \
-    gunicorn \
+#    gunicorn \
     tensorflow \
-    opencv-python \
-    matplotlib \
-    pillow \
+#    opencv-python \
+#    matplotlib \
+#    pillow \
     keras
 
 RUN mkdir /root/.keras
@@ -51,8 +51,6 @@ COPY keras.json /root/.keras/
 
 RUN (cd /usr/local/lib/python2.7/dist-packages/scipy/.libs; rm *; ln ../../numpy/.libs/* .)
 RUN rm -rf /root/.cache
-
-
 
 # Env Variables
 ENV PYTHONUNBUFFERED=TRUE
