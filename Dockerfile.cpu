@@ -30,9 +30,9 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
 
 # Install all of the packages
 RUN wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py
-RUN pip install --upgrade \
-#    numpy \
+RUN pip install \
     h5py \
+    numpy==1.14.5 \
     scipy \
     scikit-learn \ 
     scikit-image \
@@ -40,11 +40,11 @@ RUN pip install --upgrade \
     flask \
     gevent \
     gunicorn \
-    tensorflow\
-    keras \
-    opencv-python==3.4.0.12 \
+    tensorflow \
+    opencv-python \
     matplotlib \
-    pillow
+    pillow \
+    keras
 
 RUN mkdir /root/.keras
 COPY keras.json /root/.keras/

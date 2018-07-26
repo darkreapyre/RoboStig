@@ -35,6 +35,7 @@ RUN curl -O https://bootstrap.pypa.io/get-pip.py && \
 
 RUN pip --no-cache-dir install \
         h5py \
+        numpy==1.14.5 \
         pandas \
         scipy \
         keras \
@@ -43,7 +44,8 @@ RUN pip --no-cache-dir install \
         gunicorn \
         scikit-learn \
         scikit-image \
-        opencv-python==3.4.0.12 \
+        opencv-python \
+#        opencv-python==3.4.0.12 \
         matplotlib \
         pillow
 
