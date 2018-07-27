@@ -66,6 +66,10 @@ At the end of the deployment, you should have the following:
 Delete the following resources that aren't deleted by the CloudFormation template:
 - Delete CodePipeline Artifacts and Workshop S3 Buckets.
 - CloudWatch Logs.
+    - `/aws/codebuild/*`
+    - `/aws/lambda/SageMaker-Workshop*`
+    - `/aws/sagemaker/Endpoints/pystig`
+    - `/aws/sagemaker/TrainingJobs`
 - `pystig` Container Repository.
 - Delete SageMaker Endpoint, Endpoint Configuration and Model.
 - IAM user `SageMaker-WS-User`.
