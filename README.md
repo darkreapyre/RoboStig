@@ -24,12 +24,13 @@ The Bucket will contain the lambda assets for the Step Function as well as the T
         "Statement": [
             {
                 "Action": [
-                    "s3:*"
+                    "s3:Get*",
+                    "s3:List*"
                 ],
                 "Effect": "Allow",
                 "Resource": [
                     "arn:aws:s3:::sagemaker-workshop-<<AWS ACCOUNT ID>>-us-west-2",
-                    "arn:aws:s3:::sagemaker-workshop-<<AWS ACCOIUNT ID>>-us-west-2/*"
+                    "arn:aws:s3:::sagemaker-workshop-<<AWS ACCOUNT ID>>-us-west-2/*"
                 ],
                 "Principal": "*"
             }
