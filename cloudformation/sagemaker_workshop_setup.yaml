@@ -270,10 +270,12 @@ Resources:
               commands:
                 - printenv
                 - wget $DATA_SOURCE
-                - aws s3 cp ./data.zip s3://$S3_BUCKET/data/data.zip --acl public-read
+                - aws s3 cp ./data.zip s3://$S3_BUCKET/data/data.zip
+#                - aws s3 cp ./data.zip s3://$S3_BUCKET/data/data.zip --acl public-read
                 - unzip ./data.zip
                 - rm -rf __*
-                - aws s3 cp --recursive  ./data s3://$S3_BUCKET/data --acl public-read
+                - aws s3 cp --recursive  ./data s3://$S3_BUCKET/data
+#                - aws s3 cp --recursive  ./data s3://$S3_BUCKET/data --acl public-read
 #                - aws s3api put-bucket-acl --bucket $S3_BUCKET --acl public-read
 #                - aws s3api get-bucket-acl --bucket $S3_BUCKET
       Environment:
