@@ -274,8 +274,6 @@ Resources:
                 - unzip ./data.zip
                 - rm -rf __*
                 - aws s3 cp --recursive  ./data s3://$S3_BUCKET/data --acl public-read
-                - aws s3api put-bucket-acl --bucket $S3_BUCKET --acl public-read
-                - aws s3api get-bucket-acl --bucket $S3_BUCKET
       Environment:
         ComputeType: "BUILD_GENERAL1_SMALL"
         Image: aws/codebuild/python:2.7.12
