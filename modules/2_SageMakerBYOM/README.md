@@ -1,4 +1,4 @@
-# Module 2: Bring Your Own Model to SageMaker - NVIDIA Model
+# Module 2: Train Your Own Model on SageMaker
 
 ![Train](https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/images/2/Train.jpg)
 
