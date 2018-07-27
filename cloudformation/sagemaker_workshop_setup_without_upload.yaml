@@ -251,43 +251,6 @@ Resources:
       Name: serve-container-build
       ServiceRole: !Ref CodeBuildServiceRole
 
-  DataUploadProject:
-    Type: AWS::CodeBuild::Project
-    Properties:
-      Artifacts:
-        Type: CODEPIPELINE
-      Source:
-        Type: CODEPIPELINE
-        BuildSpec: |
-          version: 0.1
-          phases:
-            install:
-              commands:
-                - apt-get update && apt-get -y install python-pip wget curl
-                - pip install --upgrade python
-                - pip install --upgrade awscli
-            pre_build:
-              commands:
-                - printenv
-                - wget $DATA_SOURCE
-                - aws s3 cp ./data.zip s3://$S3_BUCKET/data/data.zip --acl public-read
-                - unzip ./data.zip
-                - rm -rf __*
-                - aws s3 cp --recursive  ./data s3://$S3_BUCKET/data --acl public-read
-      Environment:
-        ComputeType: "BUILD_GENERAL1_SMALL"
-        Image: aws/codebuild/python:2.7.12
-        Type: "LINUX_CONTAINER"
-        EnvironmentVariables:
-          - Name: AWS_DEFAULT_REGION
-            Value: !Ref AWS::Region
-          - Name: DATA_SOURCE
-            Value: "https://s3-us-west-2.amazonaws.com/robostig-assets-us-west-2/data/data.zip"
-          - Name: S3_BUCKET
-            Value: !Ref S3Bucket
-      Name: training-data-upload
-      ServiceRole: !Ref CodeBuildServiceRole
-
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -339,19 +302,6 @@ Resources:
                 - Name: Code
               OutputArtifacts:
                 - Name: ServeBuildOutput
-              RunOrder: 1
-            - Name: DataUpload
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Version: 1
-                Provider: CodeBuild
-              Configuration:
-                ProjectName: !Ref DataUploadProject
-              InputArtifacts:
-                - Name: Code
-              OutputArtifacts:
-                - Name: DataUploadOutput
               RunOrder: 1
         - Name: TrainAndDeploy
           Actions:
@@ -667,7 +617,7 @@ Outputs:
 
   TrainingDataDownloadURL:
     Description: Link to the .zip file for Module 1 Training Data.
-    Value: !Sub https://s3.amazonaws.com/${S3Bucket}/data/data.zip
+    Value: !Sub https://s3-${AWS::Region}.amazonaws.com/${S3Bucket}/data/data.zip
 
   TrainingDataBucket:
     Description: S3 Bucket containing the Module 4 Training Data --> data_bucket

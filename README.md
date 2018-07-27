@@ -15,7 +15,7 @@ This IAM user will be used to demonstrate the self-driving vehicle driving not h
 
 ## Step 3: Create a default S3 bucket for the workshop.
 The Bucket will contain the lambda assets for the Step Function as well as the Training Data source `.zip` file for __Module 1__ and extracted source for __Module 4__.
-- Create the S3 Bucket called `sagemaker-workshop-<<AWS ACCOUNT ID>>-us-west-2` with the defaults and substitute <<AWS ACCOUNT ID>> with the account used to run the workshop.
+- Create the S3 Bucket called `sagemaker-workshop-<<AWS ACCOUNT ID>>-us-east-1` with the defaults and substitute `<<AWS ACCOUNT ID>>` with the account used to run the workshop.
 - Apply the following Bucket Policy:
 ```json
     {
@@ -29,8 +29,8 @@ The Bucket will contain the lambda assets for the Step Function as well as the T
                 ],
                 "Effect": "Allow",
                 "Resource": [
-                    "arn:aws:s3:::sagemaker-workshop-<<AWS ACCOUNT ID>>-us-west-2",
-                    "arn:aws:s3:::sagemaker-workshop-<<AWS ACCOUNT ID>>-us-west-2/*"
+                    "arn:aws:s3:::sagemaker-workshop-<<AWS ACCOUNT ID>>-us-east-1",
+                    "arn:aws:s3:::sagemaker-workshop-<<AWS ACCOUNT ID>>-us-east-1/*"
                 ],
                 "Principal": "*"
             }
@@ -53,16 +53,24 @@ At the end of the deployment, you should have the following:
 
 ```console
     $ cd cloudformation
-    $ aws cloudformation package --region us-west-2 --s3-bucket sagemaker-workshop-<<AWS ACCOUNT ID>>-us-west-2 --template sagemaker_workshop_setup.yaml --output-template-file output.yaml
+    $ aws cloudformation package --region us-east-1 --s3-bucket sagemaker-workshop-<<AWS ACCOUNT ID>>-us-east-1 --template sagemaker_workshop_setup.yaml --output-template-file output.yaml
 ```
 
 ### Deploy CloudFormation Package
 
 ```console
-    $ aws cloudformation deploy --region us-west-2 --template-file output.yaml --stack-name SageMaker-Workshop --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubUser=<<GitHub User>> GitHubRepo=<<GitHub Repository>> GitHubBranch=setup GitHubToken=<<GitHub Token>> SageMakerExecutionRole=<<SAGEMAKER ROLE ARN>> EmailAddress=<<UPDATE E-MAIL ADDRESS>> S3Bucket=<<S3 Bucket>>
+    $ aws cloudformation deploy --region us-east-1 --template-file output.yaml --stack-name SageMaker-Workshop --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubUser=<<GitHub User>> GitHubRepo=<<GitHub Repository>> GitHubBranch=setup GitHubToken=<<GitHub Token>> SageMakerExecutionRole=<<SAGEMAKER ROLE ARN>> EmailAddress=<<UPDATE E-MAIL ADDRESS>> S3Bucket=sagemaker-workshop-<<AWS ACCOUNT ID>>-us-east-1
 ```
+### Review CloudFormation Outputs
+Review the `Outputs` Tab of for the CloudFormation Stack and update the course content with the following:
+- `TrainingDataBucket`: This will be provided to the student in __Module 4__ as the location of the extracted training data should they wish to leverage the provide *Keras* Training and Hosting Containers.
+- `ModelServingImage`: This will be provided to the student in __Module 4__ as the location of the hosting container should they wish to leverage the provide *Keras* Training and Hosting Containers.
+- `TrainingDataDownloadURL`: This will be provided to the student in __Module 1__ as the location of the zipped training data to explore.
+- `ModelTrainingImage`:  This will be provided to the student in __Module 4__ as the location of the GPU training container should they wish to leverage the provide *Keras* Training and Hosting Containers.
 
-### Cleanup
+>__Note:__ You can follow the deployment of the workshop deployment by clicking on the value of the `CodePipelineURL` output.
+
+## Step 6: Cleanup
 Delete the following resources that aren't deleted by the CloudFormation template:
 - Delete CodePipeline Artifacts and Workshop S3 Buckets.
 - CloudWatch Logs.
