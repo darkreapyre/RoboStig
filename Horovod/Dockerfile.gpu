@@ -104,8 +104,8 @@ RUN chmod +x /usr/local/bin/change-hostname.sh
 # From https://github.com/chainer/chainer/pull/4756
 COPY parallel_updater.patch /parallel_updater.patch
 
-# Testing using the beta framework to pull environment variables for training
-# as well as python modules serving + openMPI module for Python
+# Testing using the beta framework to pull environment variables for training,
+# python modules for serving and openMPI module for Python
 RUN pip install sagemaker-containers==2.1.0 mpi4py
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
