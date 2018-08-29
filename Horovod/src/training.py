@@ -31,7 +31,7 @@ from retrying import retry
 import sagemaker_containers.beta.framework as framework
 
 """
-Note: Confirm if the loggin code below is needed
+Note: Confirm if the logging code below is needed
 """
 logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                     level=logging.INFO)
@@ -43,7 +43,7 @@ logging.getLogger('botocore').setLevel(logging.WARN)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# Basic variables required to execute `mpirun` and to change the container hostname
+# Global variables required to execute `mpirun` and to change the container hostname
 _MPI_SCRIPT = "/mpi_script.sh"
 _MPI_IS_RUNNING = "/mpi_is_running"
 _MPI_IS_FINISHED = "/mpi_is_finished"
@@ -172,11 +172,6 @@ def _can_connect(host, port, s):
 #######################################################
 # TO-DO: _get_mpi_command and _run_m,pi_on_all_nodes  #
 #######################################################
-
-
-
-
-
 
 def main():
     hyperparameters = framework.env.read_hyperparameters()
