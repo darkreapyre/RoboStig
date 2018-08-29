@@ -1,0 +1,189 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You
+# may not use this file except in compliance with the License. A copy of
+# the License is located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+# ANY KIND, either express or implied. See the License for the specific
+# language governing permissions and limitations under the License.
+
+# Taken from https://github.com/aws/sagemaker-chainer-container/blob/master/src/sagemaker_chainer_container/training.py
+
+from __future__ import absolute_import
+
+import logging
+import os
+import shlex
+import socket
+import stat
+import subprocess
+import sys
+import textwrap
+import time
+import timeout
+from retrying import retry
+
+# Configure the trainer environemnt for SageMaker training from the beta framework
+import sagemaker_containers.beta.framework as framework
+
+"""
+Note: Confirm if the loggin code below is needed
+"""
+logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    level=logging.INFO)
+
+logging.getLogger('boto3').setLevel(logging.INFO)
+logging.getLogger('s3transfer').setLevel(logging.INFO)
+logging.getLogger('botocore').setLevel(logging.WARN)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Basic variables required to execute `mpirun` and to change the container hostname
+_MPI_SCRIPT = "/mpi_script.sh"
+_MPI_IS_RUNNING = "/mpi_is_running"
+_MPI_IS_FINISHED = "/mpi_is_finished"
+_CHANGE_HOSTNAME_LIBRARY = "/libchangehostname.so"
+
+def train(env, hyperparameters):
+    """
+    Runs Chainer training on a user supplied module in either a local or distributed
+    SageMaker environment.
+    The user supplied module and its dependencies are downloaded from S3.
+    Training is invoked by calling a "train" function in the user supplied module.
+    If the environment contains multiple hosts, then a distributed learning
+    task is started with mpirun.
+    The following is a list of other hyperparameters that can be used to change training behavior.
+    * `sagemaker_use_mpi`: [Required for Horovod]
+    * `sagemaker_process_slots_per_host`: the number of process slots per host. [TBD]
+    * `sagemaker_num_processes`: the total number of processes to run. [TBD]
+    * `sagemaker_additional_mpi_options`: a string of options to pass to mpirun. [TBDF]
+    For more on how distributed training uses these parameters, please see :func:`_get_mpi_command`.
+    """
+
+    use_mpi = bool(hyperparameters.get('sagemaker_use_mpi', len(env.hosts) > 1))
+
+    if use_mpi:
+        # get the current training hostname
+        current_host = env.current_host
+        hosts = list(env.hosts)
+        # change the container hostname to training hostname
+        _change_hostname(current_host)
+
+        # Start the SSH Daemon for workers to communicate
+        _start_ssh_daemon()
+
+        # Generate MPI script to start the training
+        _create_mpi_script(env)
+
+        # launch master script if master host
+        if current_host == _get_master_host_name(hosts):
+            # test connectivity to workers
+            _wait_for_worker_nodes_to_start_sshd(hosts)
+
+            # execute training mpirun
+            _run_mpi_on_all_nodes(env, hyperparameters)
+        else:
+            _wait_for_training_to_finish(env)
+    else:
+        _run_training(env)
+
+def _change_hostname(current_host):
+    """
+    Compiles a shared library to correct the behavior of the gethostname system call,
+    which OpenMPI depends on.
+    
+    Args:
+        current_host (str): name of the current host, such as algo-1, algo-2, etc.
+    """
+    os.system("change-hostname.sh {}".format(current_host))
+
+def _start_ssh_daemon():
+    subprocess.Popen(["/usr/sbin/sshd", "-D"])
+
+def _create_mpi_script(env):
+    """
+    Creates a MPI script with user provided information.
+    For distributed training: the 'master node' runs mpirun with this script,
+    '/mpi_script.sh'. 
+    
+    This script creates a file '/mpi_is_running' that worker nodes use to
+    determine whether training # (started by MPI from the master node) is still running.
+    
+    Processes on worker nodes use # /mpi_is_finished file to determine when to exit.
+    
+    Args:
+        env (TrainingEnv): an instance of the training environment.
+    """
+    # return list of cmd args
+    hyperparameters = framework.mapping.to_cmd_args(env.hyperparameters)
+    channels = framework.mapping.to_cmd_args(env.channel_input_dirs)
+    framework.modules.download_and_install(env.module_dir) # <-- check if needed
+
+    python_cmd = [sys.executable, '-m', 'mpi4py', '-m', env.module_name]
+    python_cmd.extend(hyperparameters)
+    python_cmd.extend(channels)
+
+    content = textwrap.dedent("""#!/usr/bin/env bash
+touch /mpi_is_running
+%s
+EXIT_CODE=$?
+touch /mpi_is_finished
+exit ${EXIT_CODE}
+""" % ' '.join(python_cmd))
+
+    # build MPI script
+    with open(_MPI_SCRIPT, 'w') as w:
+        w.write(content)
+    
+    # change permissions on script
+    st = os.stat(_MPI_SCRIPT)
+    os.chmod(_MPI_SCRIPT, st.st_mode | stat.S_IEXEC)
+
+def _get_master_host_name(hosts):
+    return sorted(hosts)[0]
+
+
+def _wait_for_worker_nodes_to_start_sshd(hosts, interval=1, timeout_in_seconds=180):
+    with timeout(seconds=timeout_in_seconds):
+        while hosts:
+            logger.info("hosts that aren't SSHable yet: %s", str(hosts))
+            for host in hosts:
+                ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                if _can_connect(host, 22, ssh_socket):
+                    hosts.remove(host)
+            time.sleep(interval)
+
+def _can_connect(host, port, s):
+    try:
+        logger.debug("testing connection to host %s", host)
+        s.connect((host, port))
+        s.close()
+        logger.debug("can connect to host %s", host)
+        return True
+    except socket.error:
+        logger.debug("can't connect to host %s", host)
+    return False
+
+#######################################################
+# TO-DO: _get_mpi_command and _run_m,pi_on_all_nodes  #
+#######################################################
+
+
+
+
+
+
+def main():
+    hyperparameters = framework.env.read_hyperparameters()
+    env = framework.training_env(hyperparameters=hyperparameters)
+    logger.setLevel(env.log_level)
+    train(env, hyperparameters)
+
+# This branch hit by mpi_script.sh
+if __name__ == '__main__':
+    main()
