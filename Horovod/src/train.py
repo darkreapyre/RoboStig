@@ -1,12 +1,11 @@
-'''Train a simple deep CNN on the CIFAR10 small images dataset.
+"""
+Train a simple deep CNN on the CIFAR10 small images dataset.
 
-GPU run command with Theano backend (with TensorFlow, the GPU is automatically used):
-    THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatx=float32 python cifar10_cnn.py
-
+Note: 
 It gets down to 0.65 test logloss in 25 epochs, and down to 0.55 after 50 epochs.
-(it's still underfitting at that point, though).
-'''
-
+(it's still underfitting at that point, though). Code is based on RiseML Horovod
+and adapted from SAgeMaker CIFAR Example for Keras.
+"""
 from __future__ import print_function
 import keras
 import os
