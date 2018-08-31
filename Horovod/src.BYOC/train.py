@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You
@@ -44,10 +46,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Global variables required to execute `mpirun` and to change the container hostname
-_MPI_SCRIPT = "/mpi_script.sh"
-_MPI_IS_RUNNING = "/mpi_is_running"
-_MPI_IS_FINISHED = "/mpi_is_finished"
-_CHANGE_HOSTNAME_LIBRARY = "/libchangehostname.so"
+_MPI_SCRIPT = "./mpi_script.sh"
+_MPI_IS_RUNNING = "./mpi_is_running"
+_MPI_IS_FINISHED = "./mpi_is_finished"
+_CHANGE_HOSTNAME_LIBRARY = "./libchangehostname.so"
 
 def train(env, hyperparameters):
     """
@@ -71,14 +73,13 @@ def train(env, hyperparameters):
         # get the current training hostname
         current_host = env.current_host
         hosts = list(env.hosts)
-
         # change the container hostname to training hostname
         _change_hostname(current_host)
 
         # Start the SSH Daemon for workers to communicate
         _start_ssh_daemon()
 
-        # Generate MPI script to run the training
+        # Generate MPI script to start the training
         _create_mpi_script(env)
 
         # launch master script if master host
@@ -91,7 +92,6 @@ def train(env, hyperparameters):
         else:
             _wait_for_training_to_finish(env)
     else:
-        # for stand alon training
         _run_training(env)
 
 def _change_hostname(current_host):
@@ -124,7 +124,7 @@ def _create_mpi_script(env):
     # return list of cmd args
     hyperparameters = framework.mapping.to_cmd_args(env.hyperparameters)
     channels = framework.mapping.to_cmd_args(env.channel_input_dirs)
-    #framework.modules.download_and_install(env.module_dir) # <-- check if needed
+    framework.modules.download_and_install(env.module_dir) # <-- check if needed
 
     python_cmd = [sys.executable, '-m', 'mpi4py', '-m', env.module_name]
     python_cmd.extend(hyperparameters)
@@ -148,6 +148,7 @@ exit ${EXIT_CODE}
 
 def _get_master_host_name(hosts):
     return sorted(hosts)[0]
+
 
 def _wait_for_worker_nodes_to_start_sshd(hosts, interval=1, timeout_in_seconds=180):
     with timeout(seconds=timeout_in_seconds):

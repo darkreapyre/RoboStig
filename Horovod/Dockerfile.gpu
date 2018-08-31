@@ -106,15 +106,22 @@ COPY parallel_updater.patch /parallel_updater.patch
 
 # Testing using the beta framework to pull environment variables for training,
 # python modules for serving and openMPI module for Python
-RUN pip install sagemaker-containers==2.1.0 mpi4py
+RUN pip install sagemaker-containers==2.1.0
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 #ENV PATH="/opt/program:${PATH}"
 
-# Set up the program in the image
-COPY src /model
+# Set up the program in the image at "root" based on src.sagemaker-container
+COPY src /
 WORKDIR /
-ENV SAGEMAKER_TRAINING_MODULE model.training:main
-ENV SAGEMAKER_SERVING_MODULE model.serving:main
+ENV SAGEMAKER_TRAINING_MODULE training:main
+ENV SAGEMAKER_SERVING_MODULE serving:main
+
+# Set up program in image based on sagemaker BYOC (src)
+#COPY src /opt/program
+#RUN chmod +x /opt/program/train
+#RUN chmod +x /opt/program/serve
+#ENV PATH="/opt/program:${PATH}"
+#WORKDIR /opt/program
