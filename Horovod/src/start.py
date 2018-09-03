@@ -50,50 +50,107 @@ _MPI_IS_RUNNING = "./mpi_is_running"
 _MPI_IS_FINISHED = "./mpi_is_finished"
 _CHANGE_HOSTNAME_LIBRARY = "./libchangehostname.so"
 
+# Helper Functions
+def _decode(obj):  # type: (bytes or str or unicode or object) -> unicode
+    """
+    Decode an object to unicode.
+    
+    Args:
+        obj (bytes or str or unicode or anything serializable): object to be decoded
+    Returns:
+        object decoded in unicode.
+    """
+    if obj is None:
+        return u''
+    if six.PY3 and isinstance(obj, six.binary_type):
+        # transforms a byte string (b'') in unicode
+        return obj.decode('latin1')
+    elif six.PY3:
+        # PY3 strings are unicode.
+        return str(obj)
+    elif isinstance(obj, six.text_type):
+        # returns itself if it is unicode
+        return obj
+    else:
+        # decodes pY2 string to unicode
+        return str(obj).decode('utf-8')
+
+def to_cmd_args(mapping):  # type: (dict) -> list
+    """
+    Transform a dictionary in a list of cmd arguments.
+    Example:
+        >>>args = mapping.to_cmd_args({'model_dir': '/opt/ml/model', 'batch_size': 25})
+        >>>
+        >>>print(args)
+        ['--model_dir', '/opt/ml/model', '--batch_size', 25]
+    
+    Args:
+        mapping (dict[str, object]): A Python mapping.
+    Returns:
+        (list): List of cmd arguments
+    """
+
+    sorted_keys = sorted(mapping.keys())
+
+    def arg_name(obj):
+        string = _decode(obj)
+        if string:
+            return u'--%s' % string if len(string) > 1 else u'-%s' % string
+        else:
+            return u''
+
+    arg_names = [arg_name(argument) for argument in sorted_keys]
+
+    def arg_value(value):
+        if hasattr(value, 'items'):
+            map_items = ['%s=%s' % (k, v) for k, v in sorted(value.items())]
+            return ','.join(map_items)
+        return _decode(value)
+
+    arg_values = [arg_value(mapping[key]) for key in sorted_keys]
+
+    items = zip(arg_names, arg_values)
+
+    return [item for item in itertools.chain.from_iterable(items)]
+
+# Main MPI training functions
 def train(env, hyperparameters):
     """
-    Runs Chainer training on a user supplied module in either a local or distributed
+    Runs Horovod training on a user supplied module in either a local or distributed
     SageMaker environment.
     The user supplied module and its dependencies are downloaded from S3.
     Training is invoked by calling a "train" function in the user supplied module.
     If the environment contains multiple hosts, then a distributed learning
     task is started with mpirun.
     The following is a list of other hyperparameters that can be used to change training behavior.
-    * `sagemaker_use_mpi`: [Required for Horovod]
+    * `sagemaker_use_mpi`: [Required for Horovod -- Default]
     * `sagemaker_process_slots_per_host`: the number of process slots per host. [TBD]
     * `sagemaker_num_processes`: the total number of processes to run. [TBD]
-    * `sagemaker_additional_mpi_options`: a string of options to pass to mpirun. [TBDF]
+    * `sagemaker_additional_mpi_options`: a string of options to pass to mpirun. [NOT USED]
     For more on how distributed training uses these parameters, please see :func:`_get_mpi_command`.
     """
+    # Use MPI by default
+    current_host = env.current_host
+    hosts = list(env.hosts)
 
-    use_mpi = bool(hyperparameters.get('sagemaker_use_mpi', len(env.hosts) > 1))
+    # change the container hostname to training hostname
+    _change_hostname(current_host)
 
-    if use_mpi:
-        # get the current training hostname
-        current_host = env.current_host
-        hosts = list(env.hosts)
+    # Start the SSH Daemon for workers to communicate
+    _start_ssh_daemon()
 
-        # change the container hostname to training hostname
-        _change_hostname(current_host)
+    # Generate MPI script to run the training
+    _create_mpi_script(env)
 
-        # Start the SSH Daemon for workers to communicate
-        _start_ssh_daemon()
+    # launch master script if master host
+    if current_host == _get_master_host_name(hosts):
+        # test connectivity to workers
+        _wait_for_worker_nodes_to_start_sshd(hosts)
 
-        # Generate MPI script to run the training
-        _create_mpi_script(env)
-
-        # launch master script if master host
-        if current_host == _get_master_host_name(hosts):
-            # test connectivity to workers
-            _wait_for_worker_nodes_to_start_sshd(hosts)
-
-            # execute training mpirun
-            _run_mpi_on_all_nodes(env, hyperparameters)
-        else:
-            _wait_for_training_to_finish(env)
+        # execute training mpirun
+        _run_mpi_on_all_nodes(env, hyperparameters)
     else:
-        # for stand-alone training
-        _run_training(env)
+        _wait_for_training_to_finish(env)
 
 def _change_hostname(current_host):
     """
@@ -123,13 +180,14 @@ def _create_mpi_script(env):
         env (TrainingEnv): an instance of the training environment.
     """
     # return list of cmd args
-    hyperparameters = framework.mapping.to_cmd_args(env.hyperparameters)
-    channels = framework.mapping.to_cmd_args(env.channel_input_dirs)
-    #framework.modules.download_and_install(env.module_dir) # <-- check if needed
+    hyperparameters = to_cmd_args(hyperparameters)
+    channels = to_cmd_args(env.channel_dirs)
+    output = to_env_vars(env.output_data_dir)
 
     python_cmd = [sys.executable, 'train.py']
     python_cmd.extend(hyperparameters)
     python_cmd.extend(channels)
+    python_cmd.extend(output)
 
     content = textwrap.dedent("""#!/usr/bin/env bash
 touch /mpi_is_running
@@ -152,19 +210,19 @@ def _get_master_host_name(hosts):
 
 def _can_connect(host, port, s):
     try:
-        logger.debug("testing connection to host %s", host)
+        #logger.debug("testing connection to host %s", host)
         s.connect((host, port))
         s.close()
-        logger.debug("can connect to host %s", host)
+        #logger.debug("can connect to host %s", host)
         return True
     except socket.error:
-        logger.debug("can't connect to host %s", host)
+        #logger.debug("can't connect to host %s", host)
     return False
 
 def _wait_for_worker_nodes_to_start_sshd(hosts, interval=1, timeout_in_seconds=180):
     with timeout(seconds=timeout_in_seconds):
         while hosts:
-            logger.info("hosts that aren't SSHable yet: %s", str(hosts))
+            #logger.info("hosts that aren't SSHable yet: %s", str(hosts))
             for host in hosts:
                 ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 if _can_connect(host, 22, ssh_socket):
@@ -204,7 +262,7 @@ def _get_mpi_command(env, hyperparameters):
     Returns:
         str: The mpirun command to run.
     """
-    is_gpu = env.num_gpus if env.num_gpus > 0 else 1
+    is_gpu = env.available_gpus if env.available_gpus > 0 else 1
 
     process_slots_per_host = int(hyperparameters.get('sagemaker_process_slots_per_host', is_gpu))
 
@@ -220,7 +278,7 @@ def _get_mpi_command(env, hyperparameters):
 
     credential_vars = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN']
 
-    logger.info('network interface name: %s', env.network_interface_name)
+    #logger.info('network interface name: %s', env.network_interface_name)
 
     mpi_command = 'mpirun --allow-run-as-root --host {}'.format(",".join(host_list)) \
                   + " -bind-to none" \
@@ -260,10 +318,10 @@ def _run_mpi_on_all_nodes(env, hyperparameters):
     mpi_command = _get_mpi_command(env, hyperparameters)
     cmd = shlex.split(mpi_command)
 
-    framework.logging.log_script_invocation(cmd, env.to_env_vars(), logger)
+    #framework.logging.log_script_invocation(cmd, env.to_env_vars(), logger)
 
-    with open(_MPI_SCRIPT) as f:
-        logger.info('Running MPI script:\n\n%s', f.read())
+    #with open(_MPI_SCRIPT) as f:
+    #    logger.info('Running MPI script:\n\n%s', f.read())
     
     subprocess.check_call(cmd)
 
@@ -281,14 +339,14 @@ def _wait_until_mpi_stops_running():
 def _wait_for_training_to_finish(env):
     current_host = env.current_host
 
-    logger.info("Worker node %s is waiting for MPI to start training process", current_host)
+    #logger.info("Worker node %s is waiting for MPI to start training process", current_host)
     _wait_for_mpi_to_start_running()
 
-    logger.info("MPI started training process on worker node %s", current_host)
+    #logger.info("MPI started training process on worker node %s", current_host)
 
     _wait_until_mpi_stops_running()
     
-    logger.info("Training process started by MPI on worker node %s stopped", current_host)
+    #logger.info("Training process started by MPI on worker node %s stopped", current_host)
 
 def _run_training(env):
     logger.info('Invoking user training script.')
@@ -306,11 +364,10 @@ def main():
     print("Creating SageMaker trainer environment:\n%s" % str(env))
     
     # Get Hyperparameters
-    print("Hyperparameters: \n%s" % str(env.hyperparameters))
-#    hyperparameters = framework.env.read_hyperparameters()
-#    env = framework.training_env(hyperparameters=hyperparameters)
-#    logger.setLevel(env.log_level)
-#    train(env, hyperparameters)
+    hyperparameters = env.hyperparameters
+
+    # Start MPI training environment
+    train(env, hyperparameters)
 
 # This branch hit by mpi_script.sh
 if __name__ == '__main__':

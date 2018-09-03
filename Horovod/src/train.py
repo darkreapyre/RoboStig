@@ -21,7 +21,7 @@ from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras import backend as K
 
-OUTPUT_DIR = os.environ.get('OUTPUT_DIR', '/output')
+#OUTPUT_DIR = os.environ.get('OUTPUT_DIR', '/output')
 
 
 def download_data(num_classes=10):
@@ -172,8 +172,8 @@ def train_model(model, xy_train, xy_test, data_augmentation=False, epochs=200, b
 
 def save_model(model, save_dir, model_name='keras_model.h5'):
     # Save model and weights
-    if not os.path.isdir(save_dir):
-        os.makedirs(save_dir)
+#    if not os.path.isdir(save_dir):
+#        os.makedirs(save_dir)
     model_path = os.path.join(save_dir, model_name)
     model.save(model_path)
     print('Saved trained model at %s ' % model_path)
@@ -181,10 +181,8 @@ def save_model(model, save_dir, model_name='keras_model.h5'):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train on CIFAR-10.')
-    parser.add_argument('--training', type=str, default=os.environ['SM_CHANNEL_TRAINING'],
-                        help='Path to CIFAR-10 training data')
-    parser.add_argument('--testing', type=str, default=os.environ['SM_CHANNEL_TESTING'],
-                        help='Path to CFAR-10 testing data')
+    parser.add_argument('--training', type=str, help='Path to CIFAR-10 training data')
+    parser.add_argument('--output_data_dir', type=str, help='Path to model output')
     parser.add_argument('--learning_rate', type=float, default=0.0001,
                         help='Learning rate')
     parser.add_argument('--lr-decay', type=float, default=1e-6,
@@ -193,7 +191,7 @@ if __name__ == '__main__':
                         help='Number of epochs to train')
     parser.add_argument('--augment-data', type=bool, default=True,
                         help='Whether to augment data [TRUE | FALSE]')
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     # Horovod: initialize Horovod.
     hvd.init()
@@ -204,19 +202,14 @@ if __name__ == '__main__':
     config.gpu_options.visible_device_list = str(hvd.local_rank())
     K.set_session(tf.Session(config=config))
 
-#    if args.data is None:
-#        xy_train, xy_test = download_data()
-#    else:
-#        xy_train, xy_test = get_data(args.data)
-#    input_shape = xy_train[0].shape[1:]
-#    model = get_model(input_shape, args.learning_rate, args.lr_decay)
+    xy_train, xy_test = get_data(args.training)
+    input_shape = xy_train[0].shape[1:]
+    model = get_model(input_shape, args.learning_rate, args.lr_decay)
 #    print('Learning rate: %s' % (args.learning_rate))
 #    print('Learning rate decay: %s' % (args.lr_decay))
-#    train_model(model, xy_train, xy_test, epochs=args.epochs, data_augmentation=args.augment_data)
-    print("ENVIRON = {}\n".format(os.environ))
-    print("COMMAND ARGS = {}".format(args))
+    train_model(model, xy_train, xy_test, epochs=args.epochs, data_augmentation=args.augment_data)
 
 
     # Horovod: save checkpoints only on worker 0 to prevent other workers from corrupting them.
     if hvd.rank() == 0:
-        save_model(model, OUTPUT_DIR)
+        save_model(model, args.output_data_dir)
