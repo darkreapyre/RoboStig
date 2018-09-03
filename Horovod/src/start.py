@@ -32,23 +32,22 @@ from environment import create_trainer_environment
 
 """
 Note: Confirm if the logging code below is needed
-
-logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                    level=logging.INFO)
-
-logging.getLogger('boto3').setLevel(logging.INFO)
-logging.getLogger('s3transfer').setLevel(logging.INFO)
-logging.getLogger('botocore').setLevel(logging.WARN)
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 """
+#logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+#                    level=logging.INFO)
+
+#logging.getLogger('boto3').setLevel(logging.INFO)
+#logging.getLogger('s3transfer').setLevel(logging.INFO)
+#logging.getLogger('botocore').setLevel(logging.WARN)
+
+#logger = logging.getLogger(__name__)
+#logger.setLevel(logging.INFO)
 
 # Global variables required to execute `mpirun` and to change the container hostname
-_MPI_SCRIPT = "./mpi_script.sh"
-_MPI_IS_RUNNING = "./mpi_is_running"
-_MPI_IS_FINISHED = "./mpi_is_finished"
-_CHANGE_HOSTNAME_LIBRARY = "./libchangehostname.so"
+_MPI_SCRIPT = "/mpi_script.sh"
+_MPI_IS_RUNNING = "/mpi_is_running"
+_MPI_IS_FINISHED = "/mpi_is_finished"
+_CHANGE_HOSTNAME_LIBRARY = "/libchangehostname.so"
 
 # Helper Functions
 def _decode(obj):  # type: (bytes or str or unicode or object) -> unicode
@@ -211,18 +210,22 @@ def _get_master_host_name(hosts):
 def _can_connect(host, port, s):
     try:
         #logger.debug("testing connection to host %s", host)
+        print("testing connection to host %s" % host)
         s.connect((host, port))
         s.close()
         #logger.debug("can connect to host %s", host)
+        print("can connect to host %s" % host)
         return True
     except socket.error:
         #logger.debug("can't connect to host %s", host)
+        print("can't connect to host %s" % host)
     return False
 
 def _wait_for_worker_nodes_to_start_sshd(hosts, interval=1, timeout_in_seconds=180):
     with timeout(seconds=timeout_in_seconds):
         while hosts:
             #logger.info("hosts that aren't SSHable yet: %s", str(hosts))
+            print("hosts that aren't SSHable yet: %s" % str(hosts))
             for host in hosts:
                 ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 if _can_connect(host, 22, ssh_socket):
@@ -276,9 +279,10 @@ def _get_mpi_command(env, hyperparameters):
 
     additional_mpi_options = str(hyperparameters.get('sagemaker_additional_mpi_options', ''))
 
-    credential_vars = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN']
+    #credential_vars = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN']
 
     #logger.info('network interface name: %s', env.network_interface_name)
+    print('network interface name: %s' % env.network_interface_name)
 
     mpi_command = 'mpirun --allow-run-as-root --host {}'.format(",".join(host_list)) \
                   + " -bind-to none" \
@@ -320,8 +324,9 @@ def _run_mpi_on_all_nodes(env, hyperparameters):
 
     #framework.logging.log_script_invocation(cmd, env.to_env_vars(), logger)
 
-    #with open(_MPI_SCRIPT) as f:
-    #    logger.info('Running MPI script:\n\n%s', f.read())
+    with open(_MPI_SCRIPT) as f:
+        print('Running MPI script:\n\n%s', f.read())
+#        logger.info('Running MPI script:\n\n%s' % f.read())
     
     subprocess.check_call(cmd)
 
@@ -340,13 +345,16 @@ def _wait_for_training_to_finish(env):
     current_host = env.current_host
 
     #logger.info("Worker node %s is waiting for MPI to start training process", current_host)
+    print("Worker node %s is waiting for MPI to start training process" % current_host)
     _wait_for_mpi_to_start_running()
 
     #logger.info("MPI started training process on worker node %s", current_host)
+    print("MPI started training process on worker node %s" % current_host)
 
     _wait_until_mpi_stops_running()
     
     #logger.info("Training process started by MPI on worker node %s stopped", current_host)
+    print("Training process started by MPI on worker node %s stopped" % current_host)
 
 def _run_training(env):
     logger.info('Invoking user training script.')
