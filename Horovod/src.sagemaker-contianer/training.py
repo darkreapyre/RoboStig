@@ -244,7 +244,7 @@ def _get_mpi_command(env, hyperparameters):
     #        mpi_command += " -x {}".format(v)
     
     """
-    Note: It may not be nevessary to include SageMaker environment for `mpirun`,
+    Note: It may not be necessary to include SageMaker environment for `mpirun`,
     since the hyperparameters are passes to the training funciton in _MPI_SCRIPT
     and NOT using `mpi4py`
     """

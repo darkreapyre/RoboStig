@@ -106,7 +106,7 @@ COPY parallel_updater.patch /parallel_updater.patch
 
 # Testing using the beta framework to pull environment variables for training,
 # python modules for serving and openMPI module for Python
-RUN pip install sagemaker-containers==2.1.0
+RUN pip install sagemaker-containers==2.1.0 retrying==1.3.3
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
