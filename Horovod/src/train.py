@@ -1,186 +1,222 @@
-#!/usr/bin/env python
+'''Train a simple deep CNN on the CIFAR10 small images dataset.
 
-# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License"). You
-# may not use this file except in compliance with the License. A copy of
-# the License is located at
-#
-#     http://aws.amazon.com/apache2.0/
-#
-# or in the "license" file accompanying this file. This file is
-# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
-# ANY KIND, either express or implied. See the License for the specific
-# language governing permissions and limitations under the License.
+Uses Horovod to distribute the training.
+'''
 
-# Taken from https://github.com/aws/sagemaker-chainer-container/blob/master/src/sagemaker_chainer_container/training.py
-
-from __future__ import absolute_import
-
-import logging
+from __future__ import print_function
+import keras
 import os
-import shlex
-import socket
-import stat
-import subprocess
-import sys
-import textwrap
-import time
-import timeout
-from retrying import retry
+import pickle
+import numpy as np
+import argparse
+import math
+import tensorflow as tf
+import horovod.keras as hvd
 
-# Configure the trainer environemnt for SageMaker training from the beta framework
-import sagemaker_containers.beta.framework as framework
+from keras.datasets.cifar import load_batch
+from keras.datasets import cifar10
+from keras.preprocessing.image import ImageDataGenerator
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.layers import Conv2D, MaxPooling2D
+from keras import backend as K
 
-"""
-Note: Confirm if the logging code below is needed
-"""
-logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                    level=logging.INFO)
+OUTPUT_DIR = os.environ.get('OUTPUT_DIR', '/output')
 
-logging.getLogger('boto3').setLevel(logging.INFO)
-logging.getLogger('s3transfer').setLevel(logging.INFO)
-logging.getLogger('botocore').setLevel(logging.WARN)
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+def download_data(num_classes=10):
+    (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+    y_train = keras.utils.to_categorical(y_train, num_classes)
+    y_test = keras.utils.to_categorical(y_test, num_classes)
+    return (x_train, y_train), (x_test, y_test)
 
-# Global variables required to execute `mpirun` and to change the container hostname
-_MPI_SCRIPT = "./mpi_script.sh"
-_MPI_IS_RUNNING = "./mpi_is_running"
-_MPI_IS_FINISHED = "./mpi_is_finished"
-_CHANGE_HOSTNAME_LIBRARY = "./libchangehostname.so"
 
-def train(env, hyperparameters):
-    """
-    Runs Chainer training on a user supplied module in either a local or distributed
-    SageMaker environment.
-    The user supplied module and its dependencies are downloaded from S3.
-    Training is invoked by calling a "train" function in the user supplied module.
-    If the environment contains multiple hosts, then a distributed learning
-    task is started with mpirun.
-    The following is a list of other hyperparameters that can be used to change training behavior.
-    * `sagemaker_use_mpi`: [Required for Horovod]
-    * `sagemaker_process_slots_per_host`: the number of process slots per host. [TBD]
-    * `sagemaker_num_processes`: the total number of processes to run. [TBD]
-    * `sagemaker_additional_mpi_options`: a string of options to pass to mpirun. [TBDF]
-    For more on how distributed training uses these parameters, please see :func:`_get_mpi_command`.
-    """
+def get_data(path, num_classes=10):
+    num_train_samples = 50000
 
-    use_mpi = bool(hyperparameters.get('sagemaker_use_mpi', len(env.hosts) > 1))
+    x_train = np.zeros((num_train_samples, 3, 32, 32), dtype='uint8')
+    y_train = np.zeros((num_train_samples,), dtype='uint8')
 
-    if use_mpi:
-        # get the current training hostname
-        current_host = env.current_host
-        hosts = list(env.hosts)
-        # change the container hostname to training hostname
-        _change_hostname(current_host)
+    for i in range(1, 6):
+        fpath = os.path.join(path, 'data_batch_' + str(i))
+        data, labels = load_batch(fpath)
+        x_train[(i - 1) * 10000:i * 10000, :, :, :] = data
+        y_train[(i - 1) * 10000:i * 10000] = labels
 
-        # Start the SSH Daemon for workers to communicate
-        _start_ssh_daemon()
+    fpath = os.path.join(path, 'test_batch')
+    x_test, y_test = load_batch(fpath)
 
-        # Generate MPI script to start the training
-        _create_mpi_script(env)
+    y_train = np.reshape(y_train, (len(y_train), 1))
+    y_test = np.reshape(y_test, (len(y_test), 1))
 
-        # launch master script if master host
-        if current_host == _get_master_host_name(hosts):
-            # test connectivity to workers
-            _wait_for_worker_nodes_to_start_sshd(hosts)
+    x_train = x_train.transpose(0, 2, 3, 1)
+    x_test = x_test.transpose(0, 2, 3, 1)
 
-            # execute training mpirun
-            _run_mpi_on_all_nodes(env, hyperparameters)
-        else:
-            _wait_for_training_to_finish(env)
+    # Convert class vectors to binary class matrices.
+    y_train = keras.utils.to_categorical(y_train, num_classes)
+    y_test = keras.utils.to_categorical(y_test, num_classes)
+
+    return (x_train, y_train), (x_test, y_test)
+
+
+def get_model(input_shape, learning_rate, lr_decay, num_classes=10):
+    model = Sequential()
+
+    model.add(Conv2D(32, (3, 3), padding='same',
+                    input_shape=input_shape))
+    model.add(Activation('relu'))
+    model.add(Conv2D(32, (3, 3)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.25))
+
+    model.add(Conv2D(64, (3, 3), padding='same'))
+    model.add(Activation('relu'))
+    model.add(Conv2D(64, (3, 3)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.25))
+
+    model.add(Flatten())
+    model.add(Dense(512))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(num_classes))
+    model.add(Activation('softmax'))
+
+    # initiate RMSprop optimizer
+    opt = keras.optimizers.rmsprop(lr=learning_rate, decay=lr_decay)
+
+    opt = hvd.DistributedOptimizer(opt)
+
+    # Let's train the model using RMSprop
+    model.compile(loss='categorical_crossentropy',
+                optimizer=opt,
+                metrics=['accuracy'])
+    return model
+
+
+def train_model(model, xy_train, xy_test, data_augmentation=False, epochs=200, batch_size=32):
+
+    x_train, y_train = xy_train
+    x_test, y_test = xy_test
+    print('x_train shape:', x_train.shape)
+    print(x_train.shape[0], 'train samples')
+    print(x_test.shape[0], 'test samples')
+
+    x_train = x_train.astype('float32')
+    x_test = x_test.astype('float32')
+    x_train /= 255
+    x_test /= 255
+
+    if not data_augmentation:
+        print('Not using data augmentation.')
+        model.fit(x_train, y_train,
+                batch_size=batch_size,
+                epochs=epochs,
+                validation_data=(x_test, y_test),
+                verbose=2,
+                shuffle=True)
     else:
-        _run_training(env)
+        print('Using real-time data augmentation.')
+        # This will do preprocessing and realtime data augmentation:
+        datagen = ImageDataGenerator(
+            featurewise_center=False,  # set input mean to 0 over the dataset
+            samplewise_center=False,  # set each sample mean to 0
+            featurewise_std_normalization=False,  # divide inputs by std of the dataset
+            samplewise_std_normalization=False,  # divide each input by its std
+            zca_whitening=False,  # apply ZCA whitening
+            rotation_range=0,  # randomly rotate images in the range (degrees, 0 to 180)
+            width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
+            height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
+            horizontal_flip=True,  # randomly flip images
+            vertical_flip=False)  # randomly flip images
 
-def _change_hostname(current_host):
-    """
-    Compiles a shared library to correct the behavior of the gethostname system call,
-    which OpenMPI depends on.
-    
-    Args:
-        current_host (str): name of the current host, such as algo-1, algo-2, etc.
-    """
-    os.system("change-hostname.sh {}".format(current_host))
+        # Compute quantities required for feature-wise normalization
+        # (std, mean, and principal components if ZCA whitening is applied).
+        datagen.fit(x_train)
 
-def _start_ssh_daemon():
-    subprocess.Popen(["/usr/sbin/sshd", "-D"])
+        callbacks = [
+            # Horovod: broadcast initial variable states from rank 0 to all other processes.
+            # This is necessary to ensure consistent initialization of all workers when
+            # training is started with random weights or restored from a checkpoint.
+            hvd.callbacks.BroadcastGlobalVariablesCallback(0),
+        ]
 
-def _create_mpi_script(env):
-    """
-    Creates a MPI script with user provided information.
-    For distributed training: the 'master node' runs mpirun with this script,
-    '/mpi_script.sh'. 
-    
-    This script creates a file '/mpi_is_running' that worker nodes use to
-    determine whether training # (started by MPI from the master node) is still running.
-    
-    Processes on worker nodes use # /mpi_is_finished file to determine when to exit.
-    
-    Args:
-        env (TrainingEnv): an instance of the training environment.
-    """
-    # return list of cmd args
-    hyperparameters = framework.mapping.to_cmd_args(env.hyperparameters)
-    channels = framework.mapping.to_cmd_args(env.channel_input_dirs)
-    framework.modules.download_and_install(env.module_dir) # <-- check if needed
+        verbose = 0
 
-    python_cmd = [sys.executable, '-m', 'mpi4py', '-m', env.module_name]
-    python_cmd.extend(hyperparameters)
-    python_cmd.extend(channels)
+        # Horovod: save checkpoints only on worker 0 to prevent other workers from corrupting them.
+        if hvd.rank() == 0:
+            checkpoint = os.path.join(OUTPUT_DIR,
+                                      'checkpoint-{epoch}.h5')
+            callbacks.append(keras.callbacks.ModelCheckpoint(checkpoint))
+            verbose = 2
 
-    content = textwrap.dedent("""#!/usr/bin/env bash
-touch /mpi_is_running
-%s
-EXIT_CODE=$?
-touch /mpi_is_finished
-exit ${EXIT_CODE}
-""" % ' '.join(python_cmd))
+        # Fit the model on the batches generated by datagen.flow().
+        model.fit_generator(datagen.flow(x_train, y_train,
+                                        batch_size=batch_size),
+                            steps_per_epoch=x_train.shape[0] // batch_size,
+                            epochs=epochs,
+                            verbose=verbose,
+                            callbacks=callbacks,
+                            validation_data=(x_test, y_test))
 
-    # build MPI script
-    with open(_MPI_SCRIPT, 'w') as w:
-        w.write(content)
-    
-    # change permissions on script
-    st = os.stat(_MPI_SCRIPT)
-    os.chmod(_MPI_SCRIPT, st.st_mode | stat.S_IEXEC)
-
-def _get_master_host_name(hosts):
-    return sorted(hosts)[0]
+        # Evaluate model with test data set and share sample prediction results
+        evaluation = hvd.allreduce(model.evaluate_generator(datagen.flow(x_test, y_test,
+                                                                         batch_size=batch_size),
+                                                            steps=x_test.shape[0] // batch_size))
+        if hvd.rank() == 0:
+            print('Model Accuracy = %.2f' % (evaluation[1]))
+            riseml.report_result(accuracy=float(evaluation[1]))
 
 
-def _wait_for_worker_nodes_to_start_sshd(hosts, interval=1, timeout_in_seconds=180):
-    with timeout(seconds=timeout_in_seconds):
-        while hosts:
-            logger.info("hosts that aren't SSHable yet: %s", str(hosts))
-            for host in hosts:
-                ssh_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                if _can_connect(host, 22, ssh_socket):
-                    hosts.remove(host)
-            time.sleep(interval)
+def save_model(model, save_dir, model_name='keras_model.h5'):
+    # Save model and weights
+    if not os.path.isdir(save_dir):
+        os.makedirs(save_dir)
+    model_path = os.path.join(save_dir, model_name)
+    model.save(model_path)
+    print('Saved trained model at %s ' % model_path)
 
-def _can_connect(host, port, s):
-    try:
-        logger.debug("testing connection to host %s", host)
-        s.connect((host, port))
-        s.close()
-        logger.debug("can connect to host %s", host)
-        return True
-    except socket.error:
-        logger.debug("can't connect to host %s", host)
-    return False
 
-#######################################################
-# TO-DO: _get_mpi_command and _run_m,pi_on_all_nodes  #
-#######################################################
-
-def main():
-    hyperparameters = framework.env.read_hyperparameters()
-    env = framework.training_env(hyperparameters=hyperparameters)
-    logger.setLevel(env.log_level)
-    train(env, hyperparameters)
-
-# This branch hit by mpi_script.sh
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Train on CIFAR-10.')
+    parser.add_argument('--training', type=str, default=os.environ['SM_CHANNEL_TRAINING'],
+                        help='Path to CIFAR-10 training data')
+    parser.add_argument('--testing', type=str, default=os.environ['SM_CHANNEL_TESTING'],
+                        help='Path to CFAR-10 testing data')
+    parser.add_argument('--learning_rate', type=float, default=0.0001,
+                        help='Learning rate')
+    parser.add_argument('--lr-decay', type=float, default=1e-6,
+                        help='Learning rate decay')
+    parser.add_argument('--epochs', type=int, default=20,
+                        help='Number of epochs to train')
+    parser.add_argument('--augment-data', type=bool, default=True,
+                        help='Whether to augment data [TRUE | FALSE]')
+    args = parser.parse_args()
+
+    # Horovod: initialize Horovod.
+    hvd.init()
+
+    # Horovod: pin GPU to be used to process local rank (one GPU per process)
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.gpu_options.visible_device_list = str(hvd.local_rank())
+    K.set_session(tf.Session(config=config))
+
+#    if args.data is None:
+#        xy_train, xy_test = download_data()
+#    else:
+#        xy_train, xy_test = get_data(args.data)
+#    input_shape = xy_train[0].shape[1:]
+#    model = get_model(input_shape, args.learning_rate, args.lr_decay)
+#    print('Learning rate: %s' % (args.learning_rate))
+#    print('Learning rate decay: %s' % (args.lr_decay))
+#    train_model(model, xy_train, xy_test, epochs=args.epochs, data_augmentation=args.augment_data)
+    print("ENVIRON = {}\n".format(os.environ))
+    print("COMMAND ARGS = {}".format(args))
+
+
+    # Horovod: save checkpoints only on worker 0 to prevent other workers from corrupting them.
+    if hvd.rank() == 0:
+        save_model(model, OUTPUT_DIR)
