@@ -87,17 +87,17 @@ def get_model(input_shape, learning_rate, lr_decay, num_classes=10):
     # initiate RMSprop optimizer
     opt = keras.optimizers.rmsprop(lr=learning_rate, decay=lr_decay)
 
+    # Horovod: distribute optimizer for avg. gradient
     opt = hvd.DistributedOptimizer(opt)
 
-    # Let's train the model using RMSprop
+    # compile model using RMSprop
     model.compile(loss='categorical_crossentropy',
                 optimizer=opt,
                 metrics=['accuracy'])
     return model
 
 
-def train_model(model, xy_train, xy_test, data_augmentation=False, epochs=200, batch_size=32):
-
+def train_model(model, xy_train, xy_test, epochs=200, batch_size=32, data_augmentation=False, output_dir):
     x_train, y_train = xy_train
     x_test, y_test = xy_test
     print('x_train shape:', x_train.shape)
@@ -147,7 +147,7 @@ def train_model(model, xy_train, xy_test, data_augmentation=False, epochs=200, b
 
         # Horovod: save checkpoints only on worker 0 to prevent other workers from corrupting them.
         if hvd.rank() == 0:
-            checkpoint = os.path.join(OUTPUT_DIR,
+            checkpoint = os.path.join(output_dir,
                                       'checkpoint-{epoch}.h5')
             callbacks.append(keras.callbacks.ModelCheckpoint(checkpoint))
             verbose = 2
@@ -178,7 +178,6 @@ def save_model(model, save_dir, model_name='keras_model.h5'):
     model.save(model_path)
     print('Saved trained model at %s ' % model_path)
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train on CIFAR-10.')
     parser.add_argument('--training', type=str, help='Path to CIFAR-10 training data')
@@ -191,6 +190,8 @@ if __name__ == '__main__':
                         help='Number of epochs to train')
     parser.add_argument('--augment-data', type=bool, default=True,
                         help='Whether to augment data [TRUE | FALSE]')
+    parser.add_argument('--batch_size', type=int, default=32,
+                        help='Training batch size')
     args, _ = parser.parse_known_args()
 
     # Horovod: initialize Horovod.
@@ -207,8 +208,13 @@ if __name__ == '__main__':
     model = get_model(input_shape, args.learning_rate, args.lr_decay)
 #    print('Learning rate: %s' % (args.learning_rate))
 #    print('Learning rate decay: %s' % (args.lr_decay))
-    train_model(model, xy_train, xy_test, epochs=args.epochs, data_augmentation=args.augment_data)
-
+    train_model(
+        model, xy_train, xy_test,
+        epochs=args.epochs,
+        batch_size= args.batch_size,
+        data_augmentation=args.augment_data,
+        output_dir=args.output_data_dir
+    )
 
     # Horovod: save checkpoints only on worker 0 to prevent other workers from corrupting them.
     if hvd.rank() == 0:

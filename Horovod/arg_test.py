@@ -11,6 +11,8 @@ parser.add_argument('--epochs', type=int, default=20,
 parser.add_argument('--augment-data', type=bool, default=True,
                     help='Whether to augment data [TRUE | FALSE]')
 parser.add_argument('--output_data_dir', type=str, help='Path to model output')
+parser.add_argument('--batch_size', type=int, default=32,
+                        help='Training batch size')
 args, _ = parser.parse_known_args()
 #args = parser.parse_args()
 print("\n")

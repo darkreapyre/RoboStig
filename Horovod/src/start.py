@@ -122,13 +122,13 @@ def train(env, hyperparameters):
     If the environment contains multiple hosts, then a distributed learning
     task is started with mpirun.
     The following is a list of other hyperparameters that can be used to change training behavior.
-    * `sagemaker_use_mpi`: [Required for Horovod -- Default]
-    * `sagemaker_process_slots_per_host`: the number of process slots per host. [TBD]
-    * `sagemaker_num_processes`: the total number of processes to run. [TBD]
+    * `sagemaker_use_mpi`: [REQUIRED for Horovod --> Default]
+    * `sagemaker_process_slots_per_host`: the number of GPUs per host. [NOT REQUIRED since automatically calculated]
+    * `sagemaker_num_processes`: the total number of processes to run. [NOT REQUIRED unless for oversubscription]
     * `sagemaker_additional_mpi_options`: a string of options to pass to mpirun. [NOT USED]
     For more on how distributed training uses these parameters, please see :func:`_get_mpi_command`.
     """
-    # Use MPI by default
+    # `sagemaker_use_mpi` by default
     current_host = env.current_host
     hosts = list(env.hosts)
 
@@ -355,16 +355,6 @@ def _wait_for_training_to_finish(env):
     
     #logger.info("Training process started by MPI on worker node %s stopped", current_host)
     print("Training process started by MPI on worker node %s stopped" % current_host)
-
-def _run_training(env):
-    logger.info('Invoking user training script.')
-
-    framework.modules.run_module(
-        env.module_dir,
-        env.to_cmd_args(),
-        env.to_env_vars(),
-        'train.py'
-    )
 
 def main():
     # Configure taining environment
