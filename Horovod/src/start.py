@@ -24,8 +24,12 @@ import subprocess
 import sys
 import textwrap
 import time
-import timeout
+import collections
+import itertools
+import json
+import six
 from retrying import retry
+from timeout import timeout
 
 # Configure the trainer environemnt from BYOC `environment.py`
 from environment import create_trainer_environment
@@ -113,7 +117,7 @@ def to_cmd_args(mapping):  # type: (dict) -> list
     return [item for item in itertools.chain.from_iterable(items)]
 
 # Main MPI training functions
-def train(env, hyperparameters):
+def train(env, hyperparameters, resources):
     """
     Runs Horovod training on a user supplied module in either a local or distributed
     SageMaker environment.
@@ -139,7 +143,7 @@ def train(env, hyperparameters):
     _start_ssh_daemon()
 
     # Generate MPI script to run the training
-    _create_mpi_script(env)
+    _create_mpi_script(env, hyperparameters)
 
     # launch master script if master host
     if current_host == _get_master_host_name(hosts):
@@ -147,7 +151,7 @@ def train(env, hyperparameters):
         _wait_for_worker_nodes_to_start_sshd(hosts)
 
         # execute training mpirun
-        _run_mpi_on_all_nodes(env, hyperparameters)
+        _run_mpi_on_all_nodes(env, hyperparameters, resources)
     else:
         _wait_for_training_to_finish(env)
 
@@ -164,7 +168,7 @@ def _change_hostname(current_host):
 def _start_ssh_daemon():
     subprocess.Popen(["/usr/sbin/sshd", "-D"])
 
-def _create_mpi_script(env):
+def _create_mpi_script(env, hyperparameters):
     """
     Creates a MPI script with user provided information.
     For distributed training: the 'master node' runs mpirun with this script,
@@ -181,7 +185,7 @@ def _create_mpi_script(env):
     # return list of cmd args
     hyperparameters = to_cmd_args(hyperparameters)
     channels = to_cmd_args(env.channel_dirs)
-    output = to_env_vars(env.output_data_dir)
+    output = to_cmd_args(dict(output_data_dir=env.output_data_dir))
 
     python_cmd = [sys.executable, 'train.py']
     python_cmd.extend(hyperparameters)
@@ -232,7 +236,7 @@ def _wait_for_worker_nodes_to_start_sshd(hosts, interval=1, timeout_in_seconds=1
                     hosts.remove(host)
             time.sleep(interval)
 
-def _get_mpi_command(env, hyperparameters):
+def _get_mpi_command(env, hyperparameters, resources):
     """Constructs a command to run distributed training with MPI using mpirun.
     Runs /mpi_script.sh on all hosts listed in the training environment. How many
     processes in total is determined by the 'sagemaker_num_processes' hyperparameter, or one
@@ -282,21 +286,17 @@ def _get_mpi_command(env, hyperparameters):
     #credential_vars = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN']
 
     #logger.info('network interface name: %s', env.network_interface_name)
-    print('network interface name: %s' % env.network_interface_name)
+    print('network interface name: %s' % resources.get('network_interface_name'))
 
     mpi_command = 'mpirun --allow-run-as-root --host {}'.format(",".join(host_list)) \
                   + " -bind-to none" \
                   + " -map-by slot" \
-                  + " -mca btl_tcp_if_include {}".format(env.network_interface_name) \
-                  + " -mca oob_tcp_if_include {}".format(env.network_interface_name) \
                   + " -mca pml ob1" \
                   + " -mca btl ^openib" \
                   + " -x PATH" \
                   + " -x LD_LIBRARY_PATH" \
                   + " -x LD_PRELOAD={}".format(_CHANGE_HOSTNAME_LIBRARY) \
-                  + " -mca orte_abort_on_non_zero_status 1" \
                   + " -x NCCL_DEBUG=INFO" \
-                  + " -x NCCL_SOCKET_IFNAME={}".format(env.network_interface_name) \
                   + " -np {} ".format(num_processes)
 
     """
@@ -318,14 +318,14 @@ def _get_mpi_command(env, hyperparameters):
     return mpi_command
 
 
-def _run_mpi_on_all_nodes(env, hyperparameters):
-    mpi_command = _get_mpi_command(env, hyperparameters)
+def _run_mpi_on_all_nodes(env, hyperparameters, resources):
+    mpi_command = _get_mpi_command(env, hyperparameters, resources)
     cmd = shlex.split(mpi_command)
 
     #framework.logging.log_script_invocation(cmd, env.to_env_vars(), logger)
 
-    with open(_MPI_SCRIPT) as f:
-        print('Running MPI script:\n\n%s', f.read())
+#    with open(_MPI_SCRIPT) as f:
+#        print('Running MPI script:\n\n%s', f.read())
 #        logger.info('Running MPI script:\n\n%s' % f.read())
     
     subprocess.check_call(cmd)
@@ -361,11 +361,14 @@ def main():
     env = create_trainer_environment()
     print("Creating SageMaker trainer environment:\n%s" % str(env))
     
-    # Get Hyperparameters
+    # Get hyperparameters
     hyperparameters = env.hyperparameters
 
+    # Get reources
+    resources = env.resource_config
+
     # Start MPI training environment
-    train(env, hyperparameters)
+    train(env, hyperparameters, resources)
 
 # This branch hit by mpi_script.sh
 if __name__ == '__main__':
