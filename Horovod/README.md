@@ -23,3 +23,7 @@ mpi_command = 'mpirun --allow-run-as-root --host {}'.format(",".join(host_list))
                   + " -x NCCL_SOCKET_IFNAME={}".format(resources.get('network_interface_name')) \
                   + " -np {} ".format(num_processes)
 ```
+
+## Default settings `train.py`
+- augment-data = False
+- Use `get_data()` to pull data from S3

@@ -281,7 +281,7 @@ def _get_mpi_command(env, hyperparameters, resources):
     host_list = env.hosts if process_slots_per_host == 1 else \
         [host + ':{}'.format(process_slots_per_host) for host in env.hosts]
 
-    additional_mpi_options = str(hyperparameters.get('sagemaker_additional_mpi_options', ''))
+    #additional_mpi_options = str(hyperparameters.get('sagemaker_additional_mpi_options', ''))
 
     #credential_vars = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN']
 
@@ -322,12 +322,13 @@ def _get_mpi_command(env, hyperparameters, resources):
 
 def _run_mpi_on_all_nodes(env, hyperparameters, resources):
     mpi_command = _get_mpi_command(env, hyperparameters, resources)
+    print('\n MPI Command to run: {}'.format(mpi_command))
     cmd = shlex.split(mpi_command)
 
     #framework.logging.log_script_invocation(cmd, env.to_env_vars(), logger)
 
-#    with open(_MPI_SCRIPT) as f:
-#        print('Running MPI script:\n\n%s', f.read())
+    with open(_MPI_SCRIPT) as f:
+        print('Running MPI script:\n\n%s', f.read())
 #        logger.info('Running MPI script:\n\n%s' % f.read())
     
     subprocess.check_call(cmd)

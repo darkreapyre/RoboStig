@@ -23,13 +23,11 @@ from keras import backend as K
 
 #OUTPUT_DIR = os.environ.get('OUTPUT_DIR', '/output')
 
-
 def download_data(num_classes=10):
     (x_train, y_train), (x_test, y_test) = cifar10.load_data()
     y_train = keras.utils.to_categorical(y_train, num_classes)
     y_test = keras.utils.to_categorical(y_test, num_classes)
     return (x_train, y_train), (x_test, y_test)
-
 
 def get_data(path, num_classes=10):
     num_train_samples = 50000
@@ -38,15 +36,12 @@ def get_data(path, num_classes=10):
     y_train = np.zeros((num_train_samples,), dtype='uint8')
 
     for i in range(1, 6):
-#        fpath = os.path.join(path, 'data_batch_' + str(i))
-#        fpath = os.path.join(path, 'cifar10_data/data_batch_' + str(i))
-        fpath = os.path.join(path, 'data_batch_' + str(i) + '.bin') #<-- Issues with unpickle
+        fpath = os.path.join(path, 'data_batch_' + str(i))
         data, labels = load_batch(fpath)
         x_train[(i - 1) * 10000:i * 10000, :, :, :] = data
         y_train[(i - 1) * 10000:i * 10000] = labels
 
-#    fpath = os.path.join(path, 'test_batch')
-    fpath = os.path.join(path, 'test_batch.bin')
+    fpath = os.path.join(path, 'test_batch')
     x_test, y_test = load_batch(fpath)
 
     y_train = np.reshape(y_train, (len(y_train), 1))
@@ -60,7 +55,6 @@ def get_data(path, num_classes=10):
     y_test = keras.utils.to_categorical(y_test, num_classes)
 
     return (x_train, y_train), (x_test, y_test)
-
 
 def get_model(input_shape, learning_rate, lr_decay, num_classes=10):
     model = Sequential()
@@ -98,7 +92,6 @@ def get_model(input_shape, learning_rate, lr_decay, num_classes=10):
                 optimizer=opt,
                 metrics=['accuracy'])
     return model
-
 
 def train_model(model, xy_train, xy_test, output_dir, epochs=200, batch_size=32, data_augmentation=False):
     x_train, y_train = xy_train
@@ -146,7 +139,7 @@ def train_model(model, xy_train, xy_test, output_dir, epochs=200, batch_size=32,
             hvd.callbacks.BroadcastGlobalVariablesCallback(0),
         ]
 
-        verbose = 1
+        verbose = 2
 
         # Horovod: save checkpoints only on worker 0 to prevent other workers from corrupting them.
         if hvd.rank() == 0:
@@ -172,7 +165,6 @@ def train_model(model, xy_train, xy_test, output_dir, epochs=200, batch_size=32,
             print('Model Accuracy = %.2f' % (evaluation[1]))
             riseml.report_result(accuracy=float(evaluation[1]))
 
-
 def save_model(model, save_dir, model_name='keras_model.h5'):
     # Save model and weights
 #    if not os.path.isdir(save_dir):
@@ -192,7 +184,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=20,
                         help='Number of epochs to train')
     parser.add_argument('--augment-data', type=bool, default=False,
-                        help='Whether to augment data [TRUE | FALSE]')
+                        help='Whether to augment data [True | False]')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='Training batch size')
     args, _ = parser.parse_known_args()
@@ -206,8 +198,8 @@ if __name__ == '__main__':
     config.gpu_options.visible_device_list = str(hvd.local_rank())
     K.set_session(tf.Session(config=config))
 
-#    xy_train, xy_test = get_data(args.training) # <-- Issues with unpickle on keras with manual downlaoded dataset
-    xy_train, xy_test = download_data()
+    xy_train, xy_test = get_data(args.training)
+#    xy_train, xy_test = download_data()
     input_shape = xy_train[0].shape[1:]
     model = get_model(input_shape, args.learning_rate, args.lr_decay)
 #    print('Learning rate: %s' % (args.learning_rate))
