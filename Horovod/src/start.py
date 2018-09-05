@@ -297,6 +297,7 @@ def _get_mpi_command(env, hyperparameters, resources):
                   + " -x LD_LIBRARY_PATH" \
                   + " -x LD_PRELOAD={}".format(_CHANGE_HOSTNAME_LIBRARY) \
                   + " -x NCCL_DEBUG=INFO" \
+                  + " -x NCCL_SOCKET_IFNAME={}".format(resources.get('network_interface_name')) \
                   + " -np {} ".format(num_processes)
 
     """
@@ -314,7 +315,8 @@ def _get_mpi_command(env, hyperparameters, resources):
     #for name, value in env.to_env_vars().items():
     #    mpi_command += ' -x {}="{}"'.format(name, value)
 
-    mpi_command += " {} ".format(additional_mpi_options) + " {}".format(_MPI_SCRIPT)
+#    mpi_command += " {} ".format(additional_mpi_options) + " {}".format(_MPI_SCRIPT)
+    mpi_command += " {}".format(_MPI_SCRIPT)
     return mpi_command
 
 
