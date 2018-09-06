@@ -1,0 +1,11 @@
+.idea
+.cache/
+**/__pycache__/
+.coverage
+.pytest_cache/
+.tox/
+htmlcov
+**/sagemaker_containers.egg-info
+**/*.pyc
+.mypy_cache/**
+.DS_Store
