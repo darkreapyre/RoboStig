@@ -1,3 +1,16 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You
+# may not use this file except in compliance with the License. A copy of
+# the License is located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+# ANY KIND, either express or implied. See the License for the specific
+# language governing permissions and limitations under the License.
+
 '''
 Train ResNet on the CIFAR10 small images dataset.
 Uses Horovod to distribute the training.
@@ -98,21 +111,22 @@ def train_model(model, xy_train, xy_test, output_dir, epochs=200, batch_size=32,
     print(x_train.shape[0], 'train samples')
     print(x_test.shape[0], 'test samples')
 
+    # Normalization 
     x_train = x_train.astype('float32')
     x_test = x_test.astype('float32')
     x_train /= 255
     x_test /= 255
 
     if not data_augmentation:
-        print('Not using data augmentation.')
+        print('Not using data augmentation.') #<-- Default
         model.fit(x_train, y_train,
                 batch_size=batch_size,
                 epochs=epochs,
                 validation_data=(x_test, y_test),
-                verbose=2,
+                verbose=2, #<-- Set loggin verbose for container debugging
                 shuffle=True)
     else:
-        print('Using real-time data augmentation.')
+        print('Using real-time data augmentation.') #<-- Not working!!!, potential CPU bound issue
         # This will do preprocessing and realtime data augmentation:
         datagen = ImageDataGenerator(
             featurewise_center=False,  # set input mean to 0 over the dataset
@@ -137,6 +151,7 @@ def train_model(model, xy_train, xy_test, output_dir, epochs=200, batch_size=32,
             hvd.callbacks.BroadcastGlobalVariablesCallback(0),
         ]
 
+        # Set logging verbose for container debugging
         verbose = 2
 
         # Horovod: save checkpoints only on worker 0 to prevent other workers from corrupting them.
