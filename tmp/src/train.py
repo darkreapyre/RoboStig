@@ -1,5 +1,5 @@
-'''Train a simple deep CNN on the CIFAR10 small images dataset.
-
+'''
+Train ResNet on the CIFAR10 small images dataset.
 Uses Horovod to distribute the training.
 '''
 
@@ -20,8 +20,6 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras import backend as K
-
-#OUTPUT_DIR = os.environ.get('OUTPUT_DIR', '/output')
 
 def download_data(num_classes=10):
     (x_train, y_train), (x_test, y_test) = cifar10.load_data()
@@ -166,9 +164,6 @@ def train_model(model, xy_train, xy_test, output_dir, epochs=200, batch_size=32,
             riseml.report_result(accuracy=float(evaluation[1]))
 
 def save_model(model, save_dir, model_name='keras_model.h5'):
-    # Save model and weights
-#    if not os.path.isdir(save_dir):
-#        os.makedirs(save_dir)
     model_path = os.path.join(save_dir, model_name)
     model.save(model_path)
     print('Saved trained model at %s ' % model_path)
@@ -199,7 +194,6 @@ if __name__ == '__main__':
     K.set_session(tf.Session(config=config))
 
     xy_train, xy_test = get_data(args.training)
-#    xy_train, xy_test = download_data()
     input_shape = xy_train[0].shape[1:]
     model = get_model(input_shape, args.learning_rate, args.lr_decay)
 #    print('Learning rate: %s' % (args.learning_rate))
