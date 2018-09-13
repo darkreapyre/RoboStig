@@ -90,7 +90,7 @@ COPY change-hostname.sh /usr/local/bin/change-hostname.sh
 
 RUN chmod +x /usr/local/bin/change-hostname.sh
 
-# Testing using the beta framework to pull environment variables for training,
+# Try testing using the beta framework to pull environment variables for training,
 # python modules for serving and openMPI module for Python
 #RUN pip install sagemaker-containers==2.1.0 retrying==1.3.3
 
