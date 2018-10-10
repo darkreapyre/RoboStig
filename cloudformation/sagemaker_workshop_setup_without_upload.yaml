@@ -16,7 +16,7 @@ Parameters:
     MaxLength: 50
   GitHubBranch:
     Type: String
-    Default: setup
+    Default: test-setup
     Description: The branch of the repository to deploy.
   GitHubToken:
     Type: String
